@@ -39,6 +39,7 @@ mirror --reverse --verbose \
   --exclude-glob var/ \
   --exclude-glob .env.local \
   --exclude-glob .env.local.example \
+  --exclude-glob public/.user.ini \
   backend/ \
   /backend/
 
