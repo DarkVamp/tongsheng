@@ -1,0 +1,17 @@
+Options -Indexes
+
+# PHP-Authorization-Header weitergeben
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Symfony-API: /api/* → backend/public/index.php
+    RewriteCond %{REQUEST_URI} ^/api(/|$)
+    RewriteRule ^ backend/public/index.php [L,QSA]
+
+    # Statische Dateien direkt ausliefern
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # React SPA: alles andere → index.html
+    RewriteRule ^ index.html [L]
+</IfModule>

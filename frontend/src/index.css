@@ -1,0 +1,246 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --bg: #f8f7ff;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  --text: #1f2937;
+  --text-muted: #6b7280;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── Utilities ─── */
+.loading { display: flex; align-items: center; justify-content: center; min-height: 100dvh; color: var(--text-muted); }
+.error { color: var(--danger); font-size: .875rem; margin-top: .25rem; }
+.success-msg { color: var(--success); font-weight: 500; }
+.empty { color: var(--text-muted); font-style: italic; }
+.status { color: var(--text-muted); font-size: .875rem; }
+
+/* ─── Login ─── */
+.login-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%);
+}
+.login-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 2rem;
+  width: 100%;
+  max-width: 380px;
+}
+.login-card h1 { font-size: 2.5rem; text-align: center; color: var(--primary); }
+.login-subtitle { text-align: center; color: var(--text-muted); margin-bottom: 1.5rem; }
+.login-card form { display: flex; flex-direction: column; gap: 1rem; }
+.login-card label { display: flex; flex-direction: column; gap: .375rem; font-size: .875rem; font-weight: 500; }
+.login-card input {
+  padding: .625rem .875rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color .15s;
+}
+.login-card input:focus { border-color: var(--primary); }
+.login-card button[type=submit] {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: .75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: .5rem;
+  transition: background .15s;
+}
+.login-card button[type=submit]:hover { background: var(--primary-hover); }
+.login-card button[type=submit]:disabled { opacity: .6; cursor: not-allowed; }
+
+/* ─── Dashboard Layout ─── */
+.dashboard { display: flex; flex-direction: column; min-height: 100dvh; }
+.dashboard-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: .875rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: var(--shadow);
+}
+.dashboard-header h1 { font-size: 1.5rem; color: var(--primary); display: flex; align-items: center; gap: .5rem; }
+.role-badge { font-size: .75rem; background: var(--primary); color: #fff; padding: .2rem .5rem; border-radius: 999px; }
+.header-right { display: flex; align-items: center; gap: .75rem; font-size: .875rem; color: var(--text-muted); }
+.btn-ghost { background: none; border: 1px solid var(--border); border-radius: 6px; padding: .375rem .75rem; cursor: pointer; font-size: .875rem; color: var(--text); transition: background .15s; }
+.btn-ghost:hover { background: var(--bg); }
+.dashboard-main { flex: 1; padding: 1.25rem; max-width: 720px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 1.5rem; }
+
+/* ─── Upload Section ─── */
+.upload-section, .recordings-section, .family-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+.upload-section h2, .recordings-section h2, .family-section h2, .family-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; }
+.family-name { color: var(--primary); font-size: 1rem; }
+.upload-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+
+.btn-record {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: .625rem 1.25rem;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-record:hover { background: var(--primary-hover); }
+.btn-record.recording { background: var(--danger); animation: pulse 1s infinite; }
+.btn-record:disabled { opacity: .6; cursor: not-allowed; }
+
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .7; } }
+
+.or { color: var(--text-muted); font-size: .875rem; }
+.btn-file {
+  display: inline-block;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .625rem 1.25rem;
+  font-size: .95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-file:hover { background: #ede9fe; }
+.btn-file input { display: none; }
+
+/* ─── Recording List ─── */
+.recording-list { list-style: none; display: flex; flex-direction: column; gap: .75rem; }
+.recording-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: .875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .625rem;
+  transition: border-color .15s;
+}
+.recording-item.active { border-color: var(--primary); }
+.recording-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
+.recording-date { font-weight: 500; font-size: .9rem; }
+.audio-player { width: 100%; height: 40px; }
+.btn-delete {
+  background: none;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  border-radius: 6px;
+  padding: .25rem .625rem;
+  font-size: .8rem;
+  cursor: pointer;
+  align-self: flex-end;
+  transition: background .15s, color .15s;
+}
+.btn-delete:hover { background: var(--danger); color: #fff; }
+
+.recording-actions { display: flex; gap: .5rem; }
+
+.btn-comments, .btn-toggle {
+  background: none;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  border-radius: 6px;
+  padding: .25rem .625rem;
+  font-size: .8rem;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.btn-comments:hover, .btn-toggle:hover { background: var(--primary); color: #fff; }
+
+/* ─── Comments ─── */
+.comments-section h3 { font-size: .95rem; font-weight: 600; margin-bottom: .5rem; }
+.comment-list { list-style: none; display: flex; flex-direction: column; gap: .5rem; margin-bottom: .75rem; }
+.comment { background: var(--bg); border-radius: 8px; padding: .625rem .875rem; }
+.comment p { font-size: .9rem; line-height: 1.4; }
+.comment-date { font-size: .75rem; color: var(--text-muted); margin-top: .25rem; display: block; }
+.comment-form { display: flex; gap: .5rem; }
+.comment-form textarea {
+  flex: 1;
+  padding: .5rem .75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .875rem;
+  resize: none;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+}
+.comment-form textarea:focus { border-color: var(--primary); }
+.comment-form button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: .5rem .875rem;
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-end;
+  transition: background .15s;
+}
+.comment-form button:hover { background: var(--primary-hover); }
+.comment-form button:disabled { opacity: .6; cursor: not-allowed; }
+
+/* ─── Teacher Filter Bar ─── */
+.filter-bar { display: flex; align-items: center; gap: .75rem; }
+.filter-bar input {
+  flex: 1;
+  padding: .5rem .875rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .9rem;
+  outline: none;
+  transition: border-color .15s;
+}
+.filter-bar input:focus { border-color: var(--primary); }
+.count { font-size: .8rem; color: var(--text-muted); white-space: nowrap; }
+
+.recording-detail { display: flex; flex-direction: column; gap: .75rem; }
+
+/* ─── Locale Switcher ─── */
+.locale-switcher { display: flex; gap: .25rem; }
+.locale-switcher button { background: none; border: 1px solid var(--border); border-radius: 6px; padding: .25rem .5rem; cursor: pointer; font-size: .8rem; color: var(--text-muted); transition: background .15s, color .15s; }
+.locale-switcher button:hover { background: var(--bg); color: var(--text); }
+.locale-switcher button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.login-card .locale-switcher { justify-content: center; margin-top: 1rem; }
+
+/* ─── Responsive ─── */
+@media (max-width: 480px) {
+  .dashboard-header { padding: .75rem 1rem; }
+  .dashboard-main { padding: 1rem; }
+  .upload-controls { flex-direction: column; align-items: stretch; }
+  .btn-record, .btn-file { text-align: center; }
+}

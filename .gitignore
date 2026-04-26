@@ -1,0 +1,18 @@
+# Symfony
+backend/.env.local
+backend/.env.*.local
+backend/var/
+backend/vendor/
+
+# React
+frontend/node_modules/
+frontend/dist/
+
+# Allgemein
+.DS_Store
+*.log
+
+# Debug-Skripte (enthalten Credentials)
+debug*.php
+diag.php
+phpinfo-check.php
