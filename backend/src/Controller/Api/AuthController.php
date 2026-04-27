@@ -37,12 +37,12 @@ class AuthController extends AbstractController
         $em->flush();
 
         return $this->json([
-            'token'         => $token,
-            'id'            => $user->getId(),
-            'role'          => $user->getRole(),
-            'name'          => $user->getFamilyName(),
-            'locale'        => $user->getLocale(),
-            'familyGroupId' => $user->getFamilyGroupId(),
+            'token'    => $token,
+            'id'       => $user->getId(),
+            'role'     => $user->getRole(),
+            'name'     => $user->getFamilyName(),
+            'locale'   => $user->getLocale(),
+            'familyId' => $user->getFamily()?->getId(),
         ]);
     }
 
@@ -64,11 +64,11 @@ class AuthController extends AbstractController
         $user = $this->getUser();
 
         return $this->json([
-            'id'            => $user->getId(),
-            'name'          => $user->getFamilyName(),
-            'role'          => $user->getRole(),
-            'locale'        => $user->getLocale(),
-            'familyGroupId' => $user->getFamilyGroupId(),
+            'id'       => $user->getId(),
+            'name'     => $user->getFamilyName(),
+            'role'     => $user->getRole(),
+            'locale'   => $user->getLocale(),
+            'familyId' => $user->getFamily()?->getId(),
         ]);
     }
 }

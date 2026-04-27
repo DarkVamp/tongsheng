@@ -20,7 +20,7 @@ export default function LoginPage() {
     try {
       const data = await login(email, password)
       if (data.locale) setLocale(data.locale)
-      signIn(data.token, { id: data.id, role: data.role, name: data.name, locale: data.locale, familyGroupId: data.familyGroupId })
+      signIn(data.token, { id: data.id, role: data.role, name: data.name, locale: data.locale, familyId: data.familyId })
       navigate(data.role === 'teacher' ? '/teacher' : '/family')
     } catch {
       setError(t('login.error'))

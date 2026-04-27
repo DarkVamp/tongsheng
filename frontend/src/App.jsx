@@ -38,7 +38,7 @@ export default function App() {
           <Route
             path="/family"
             element={
-              <ProtectedRoute role={['family', 'family_member']}>
+              <ProtectedRoute role={['family_member']}>
                 <FamilyDashboard />
               </ProtectedRoute>
             }
