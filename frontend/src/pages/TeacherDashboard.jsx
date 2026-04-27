@@ -417,6 +417,7 @@ function LessonsTab({ t, dateLocale }) {
   const [creating, setCreating] = useState(false)
   const [activeLessonId, setActiveLessonId] = useState(null)
   const [attendanceMap, setAttendanceMap] = useState({})
+  const [attendanceError, setAttendanceError] = useState({})
 
   useEffect(() => {
     getLessons().then(data => { setLessons(data); setLoaded(true) })
@@ -448,8 +449,13 @@ function LessonsTab({ t, dateLocale }) {
     if (activeLessonId === id) { setActiveLessonId(null); return }
     setActiveLessonId(id)
     if (!attendanceMap[id]) {
-      const data = await getLessonAttendance(id)
-      setAttendanceMap(prev => ({ ...prev, [id]: data }))
+      try {
+        const data = await getLessonAttendance(id)
+        setAttendanceMap(prev => ({ ...prev, [id]: data }))
+      } catch (err) {
+        const msg = err.response?.data?.error ?? err.message ?? 'Fehler beim Laden'
+        setAttendanceError(prev => ({ ...prev, [id]: msg }))
+      }
     }
   }
 
@@ -558,7 +564,13 @@ function LessonsTab({ t, dateLocale }) {
                   {att.students.length === 0 && <p className="empty">{t('teacher.noRecordings')}</p>}
                 </div>
               )}
-              {isActive && !att && <div className="attendance-list"><p className="empty">{t('common.loading')}</p></div>}
+              {isActive && !att && (
+                <div className="attendance-list">
+                  {attendanceError[l.id]
+                    ? <p className="error">{attendanceError[l.id]}</p>
+                    : <p className="empty">{t('common.loading')}</p>}
+                </div>
+              )}
             </li>
           )
         })}

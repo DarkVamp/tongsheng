@@ -48,7 +48,7 @@ const translations = {
 
     // Tabs
     'teacher.tabRecordings': 'Aufnahmen',
-    'teacher.tabStudents': 'Schüler',
+    'teacher.tabStudents': 'Familien',
     'teacher.tabLessons': 'Unterricht',
 
     // Familien-Verwaltung
@@ -165,7 +165,7 @@ const translations = {
 
     // 标签页
     'teacher.tabRecordings': '录音',
-    'teacher.tabStudents': '学生',
+    'teacher.tabStudents': '家庭',
     'teacher.tabLessons': '课程',
 
     // 家庭管理
