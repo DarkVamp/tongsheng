@@ -110,27 +110,30 @@ class LessonController extends AbstractController
             return $this->json(['error' => 'Not found.'], Response::HTTP_NOT_FOUND);
         }
 
-        $students = $userRepo->findBy(['isStudent' => true], ['familyName' => 'ASC']);
+        try {
+            $students = $userRepo->findBy(['isStudent' => true], ['familyName' => 'ASC']);
 
-        // Vorhandene Anwesenheitseinträge als Map laden
-        $attendanceMap = [];
-        foreach ($attendanceRepo->findBy(['lesson' => $lesson]) as $a) {
-            $attendanceMap[$a->getStudent()->getId()] = $a->isPresent();
+            $attendanceMap = [];
+            foreach ($attendanceRepo->findBy(['lesson' => $lesson]) as $a) {
+                $attendanceMap[$a->getStudent()->getId()] = $a->isPresent();
+            }
+
+            $studentData = array_map(function (User $s) use ($attendanceMap) {
+                return [
+                    'id'         => $s->getId(),
+                    'name'       => $s->getFamilyName(),
+                    'familyName' => $s->getFamily()?->getName() ?? $s->getFamilyName(),
+                    'present'    => $attendanceMap[$s->getId()] ?? false,
+                ];
+            }, $students);
+
+            return $this->json([
+                'lesson'   => $this->serializeLesson($lesson, array_sum(array_column($studentData, 'present')), count($students)),
+                'students' => $studentData,
+            ]);
+        } catch (\Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        $studentData = array_map(function (User $s) use ($attendanceMap) {
-            return [
-                'id'         => $s->getId(),
-                'name'       => $s->getFamilyName(),
-                'familyName' => $s->getFamily()?->getName() ?? $s->getFamilyName(),
-                'present'    => $attendanceMap[$s->getId()] ?? false,
-            ];
-        }, $students);
-
-        return $this->json([
-            'lesson'   => $this->serializeLesson($lesson, array_sum(array_column($studentData, 'present')), count($students)),
-            'students' => $studentData,
-        ]);
     }
 
     // ── Anwesenheit eines Schülers setzen (upsert) ───────────────────────────
