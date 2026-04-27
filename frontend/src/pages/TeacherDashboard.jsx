@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Trash2, ChevronDown, ChevronUp, LogOut, Send, UserPlus, Copy, X, Search } from 'lucide-react'
+import { Trash2, LogOut, Send, UserPlus, Copy, X, Search } from 'lucide-react'
+import Icon from '../components/Icon'
 import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment } from '../api/recordings'
 import { getFamilies, getInvitations, createInvitation, deleteInvitation } from '../api/invitations'
 import { logout, updateLocale } from '../api/auth'
@@ -277,12 +278,9 @@ export default function TeacherDashboard() {
                       )}
                     </div>
                     <div className="recording-actions">
-                      <button className="btn-icon-text btn-toggle" onClick={() => toggleRecording(r.id)}>
-                        {activeId === r.id
-                          ? <><ChevronUp size={15} /><span>{t('teacher.close')}</span></>
-                          : r.commentCount
-                            ? <><ChevronDown size={15} /><span>{t('teacher.openWithComments', r.commentCount)}</span></>
-                            : <><ChevronDown size={15} /><span>{t('teacher.open')}</span></>}
+                      <button className="btn-icon btn-toggle" onClick={() => toggleRecording(r.id)} title={activeId === r.id ? t('teacher.close') : t('teacher.open')}>
+                        <Icon name="chevron-down" size={16} style={activeId === r.id ? { transform: 'rotate(180deg)' } : {}} />
+                        {r.commentCount > 0 && activeId !== r.id && <span className="comment-count-badge">{r.commentCount}</span>}
                       </button>
                       <button className="btn-icon btn-delete" onClick={() => handleDelete(r.id)} title={t('common.delete')}>
                         <Trash2 size={15} />

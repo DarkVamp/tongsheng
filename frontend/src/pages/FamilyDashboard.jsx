@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import fixWebmDuration from 'fix-webm-duration'
-import { Mic, StopCircle, Upload, Trash2, ChevronDown, ChevronUp, LogOut, Send } from 'lucide-react'
+import { Mic, StopCircle, Upload, Trash2, LogOut, Send } from 'lucide-react'
+import Icon from '../components/Icon'
 import { getRecordings, uploadRecording, deleteRecording, fetchAudioBlob, getComments, addComment } from '../api/recordings'
 import { logout, updateLocale } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
@@ -221,12 +222,9 @@ export default function FamilyDashboard() {
                       )}
                     </div>
                     <div className="recording-actions">
-                      <button className="btn-icon-text btn-toggle" onClick={() => toggleComments(r.id)}>
-                        {activeId === r.id
-                          ? <><ChevronUp size={15} /><span>{t('teacher.close')}</span></>
-                          : r.commentCount
-                            ? <><ChevronDown size={15} /><span>{t('family.comments', r.commentCount)}</span></>
-                            : <><ChevronDown size={15} /><span>{t('teacher.open')}</span></>}
+                      <button className="btn-icon btn-toggle" onClick={() => toggleComments(r.id)} title={activeId === r.id ? t('teacher.close') : t('teacher.open')}>
+                        <Icon name="chevron-down" size={16} style={activeId === r.id ? { transform: 'rotate(180deg)' } : {}} />
+                        {r.commentCount > 0 && activeId !== r.id && <span className="comment-count-badge">{r.commentCount}</span>}
                       </button>
                       {isOwn(r) && (
                         <button className="btn-icon btn-delete" onClick={() => handleDelete(r.id)} title={t('common.delete')}>
