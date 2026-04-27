@@ -33,6 +33,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(nullable: true)]
     private ?int $familyGroupId = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $isStudent = false;
+
     #[ORM\Column(length: 255)]
     private string $password;
 
@@ -79,6 +82,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getLocale(): string { return $this->locale; }
     public function setLocale(string $locale): static { $this->locale = $locale; return $this; }
+
+    public function isStudent(): bool { return $this->isStudent; }
+    public function setIsStudent(bool $isStudent): static { $this->isStudent = $isStudent; return $this; }
 
     public function isTeacher(): bool { return $this->role === 'teacher'; }
     public function isFamily(): bool { return $this->role === 'family'; }

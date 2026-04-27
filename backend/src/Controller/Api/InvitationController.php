@@ -132,6 +132,39 @@ class InvitationController extends AbstractController
         ], $families));
     }
 
+    // ── Alle Familienmitglieder mit isStudent-Flag ───────────────────────────
+
+    #[Route('/api/families/members', methods: ['GET'])]
+    public function familyMembers(UserRepository $repo): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        if (!$user->isTeacher()) {
+            return $this->json(['error' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $families = $repo->findBy(['role' => 'family'], ['familyName' => 'ASC']);
+
+        $result = [];
+        foreach ($families as $family) {
+            $members = $repo->findBy(['familyGroupId' => $family->getFamilyGroupId()]);
+            usort($members, fn(User $a, User $b) => strcmp($a->getFamilyName(), $b->getFamilyName()));
+
+            $result[] = [
+                'familyGroupId' => $family->getFamilyGroupId(),
+                'familyName'    => $family->getFamilyName(),
+                'members'       => array_map(fn(User $m) => [
+                    'id'        => $m->getId(),
+                    'name'      => $m->getFamilyName(),
+                    'role'      => $m->getRole(),
+                    'isStudent' => $m->isStudent(),
+                ], $members),
+            ];
+        }
+
+        return $this->json($result);
+    }
+
     // ── Öffentlich: Token validieren (vor der Registrierung) ─────────────────
 
     #[Route('/api/register/validate', methods: ['GET'])]

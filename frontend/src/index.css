@@ -429,6 +429,160 @@ body {
 }
 .register-info p { color: var(--text); }
 
+/* ─── Tab Navigation ─── */
+.tab-nav {
+  display: flex;
+  border-bottom: 2px solid var(--border);
+  gap: 0;
+  background: var(--surface);
+  position: sticky;
+  top: 57px;
+  z-index: 9;
+  padding: 0 1.25rem;
+}
+.tab-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  padding: .75rem 1rem;
+  font-size: .875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.tab-nav button:hover { color: var(--text); }
+.tab-nav button.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+/* ─── Schüler Tab ─── */
+.students-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+.students-section h2 { font-size: 1rem; font-weight: 600; color: var(--primary); margin-bottom: .75rem; }
+.member-list { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  padding: .5rem .75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.member-item.is-student { background: #f0fdf4; border-color: #bbf7d0; }
+.member-name { flex: 1; font-size: .9rem; font-weight: 500; }
+.member-role { font-size: .75rem; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: .1rem .45rem; color: var(--text-muted); white-space: nowrap; }
+.student-badge { font-size: .75rem; background: #dcfce7; border: 1px solid #86efac; border-radius: 999px; padding: .1rem .45rem; color: #15803d; white-space: nowrap; }
+.btn-student-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: .25rem .5rem;
+  font-size: .78rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.btn-student-toggle:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.member-item.is-student .btn-student-toggle { color: #15803d; border-color: #86efac; }
+.member-item.is-student .btn-student-toggle:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+/* ─── Unterricht Tab ─── */
+.lesson-create-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: flex-end;
+}
+.lesson-create-form label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; font-weight: 500; color: var(--text-muted); flex: 1; min-width: 120px; }
+.lesson-create-form input {
+  padding: .5rem .75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+  background: var(--surface);
+}
+.lesson-create-form input:focus { border-color: var(--primary); }
+.lesson-list { list-style: none; display: flex; flex-direction: column; gap: .75rem; }
+.lesson-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color .15s;
+}
+.lesson-item.active { border-color: var(--primary); }
+.lesson-header {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .875rem 1rem;
+  flex-wrap: wrap;
+}
+.lesson-date { font-weight: 600; font-size: .9rem; flex: 1; min-width: 0; }
+.lesson-title-text { font-size: .85rem; color: var(--text-muted); margin-top: .1rem; }
+.lesson-count {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: #ede9fe;
+  border-radius: 999px;
+  padding: .15rem .6rem;
+  white-space: nowrap;
+}
+.lesson-actions { display: flex; gap: .375rem; }
+
+/* ─── Attendance List ─── */
+.attendance-list {
+  border-top: 1px solid var(--border);
+  padding: .875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.attendance-family { font-size: .8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .25rem; }
+.attendance-student {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .5rem .75rem;
+  border-radius: 8px;
+  background: var(--bg);
+}
+.attendance-student-name { flex: 1; font-size: .9rem; }
+.btn-attendance {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  border-radius: 6px;
+  padding: .3rem .625rem;
+  font-size: .8rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-muted);
+  transition: background .15s, color .15s, border-color .15s;
+}
+.btn-attendance.present { background: #dcfce7; border-color: #86efac; color: #15803d; }
+.btn-attendance:not(.present):hover { background: var(--bg); border-color: var(--primary); color: var(--primary); }
+.btn-attendance.present:hover { background: #fef2f2; border-color: #fca5a5; color: var(--danger); }
+
 /* ─── Responsive ─── */
 @media (max-width: 480px) {
   .dashboard-header { padding: .75rem 1rem; }

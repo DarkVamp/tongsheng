@@ -46,6 +46,28 @@ const translations = {
     'teacher.noRecordings': 'Keine Aufnahmen gefunden.',
     'teacher.deleteFailed': 'Löschen fehlgeschlagen.',
 
+    // Tabs
+    'teacher.tabRecordings': 'Aufnahmen',
+    'teacher.tabStudents': 'Schüler',
+    'teacher.tabLessons': 'Unterricht',
+
+    // Schüler-Tab
+    'teacher.markStudent': 'Als Schüler markieren',
+    'teacher.unmarkStudent': 'Schüler-Markierung entfernen',
+    'teacher.noFamilies': 'Keine Familien vorhanden.',
+    'teacher.studentBadge': 'Schüler',
+
+    // Unterricht-Tab
+    'teacher.lessonDate': 'Datum',
+    'teacher.lessonTitle': 'Titel (optional)',
+    'teacher.createLesson': 'Stunde anlegen',
+    'teacher.noLessons': 'Noch keine Unterrichtsstunden.',
+    'teacher.attendance': 'Anwesenheit',
+    'teacher.present': 'Anwesend',
+    'teacher.absent': 'Abwesend',
+    'teacher.confirmDeleteLesson': 'Unterrichtsstunde wirklich löschen?',
+    'teacher.lessonCount': (p, t) => `${p} / ${t}`,
+
     // Einladungen
     'teacher.inviteButton': 'Einladen',
     'teacher.inviteTitle': 'Neue Einladung',
@@ -133,6 +155,28 @@ const translations = {
     'teacher.commentPlaceholder': '写评论…',
     'teacher.noRecordings': '未找到录音。',
     'teacher.deleteFailed': '删除失败。',
+
+    // 标签页
+    'teacher.tabRecordings': '录音',
+    'teacher.tabStudents': '学生',
+    'teacher.tabLessons': '课程',
+
+    // 学生标签页
+    'teacher.markStudent': '标为学生',
+    'teacher.unmarkStudent': '取消学生标记',
+    'teacher.noFamilies': '暂无家庭。',
+    'teacher.studentBadge': '学生',
+
+    // 课程标签页
+    'teacher.lessonDate': '日期',
+    'teacher.lessonTitle': '标题（可选）',
+    'teacher.createLesson': '创建课程',
+    'teacher.noLessons': '暂无课程。',
+    'teacher.attendance': '出勤',
+    'teacher.present': '在场',
+    'teacher.absent': '缺席',
+    'teacher.confirmDeleteLesson': '确定删除此课程？',
+    'teacher.lessonCount': (p, t) => `${p} / ${t}`,
 
     // 邀请
     'teacher.inviteButton': '邀请',
