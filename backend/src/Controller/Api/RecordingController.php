@@ -5,6 +5,7 @@ namespace App\Controller\Api;
 use App\Entity\Recording;
 use App\Entity\User;
 use App\Repository\RecordingRepository;
+use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -35,18 +36,31 @@ class RecordingController extends AbstractController
     ) {}
 
     #[Route('', methods: ['GET'])]
-    public function list(RecordingRepository $repo): JsonResponse
+    public function list(RecordingRepository $repo, UserRepository $userRepo): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
 
         if ($user->isTeacher()) {
             $recordings = $repo->findBy([], ['recordedAt' => 'DESC']);
-        } else {
-            $recordings = $repo->findBy(['user' => $user], ['recordedAt' => 'DESC']);
+
+            // Gruppen-Anzeigenamen vorausberechnen: primary family user name je family_group_id
+            $familyNames = [];
+            foreach ($recordings as $r) {
+                $gid = $r->getUser()->getFamilyGroupId();
+                if ($gid !== null && !isset($familyNames[$gid])) {
+                    $primaryUser = $userRepo->find($gid);
+                    $familyNames[$gid] = $primaryUser?->getFamilyName() ?? 'Unbekannt';
+                }
+            }
+
+            return $this->json(array_map(fn(Recording $r) => $this->serialize($r, true, $familyNames), $recordings));
         }
 
-        return $this->json(array_map(fn(Recording $r) => $this->serialize($r, $user->isTeacher()), $recordings));
+        // family und family_member sehen alle Aufnahmen ihrer Gruppe
+        $recordings = $repo->findByFamilyGroup($user->getFamilyGroupId());
+
+        return $this->json(array_map(fn(Recording $r) => $this->serialize($r, false, []), $recordings));
     }
 
     #[Route('', methods: ['POST'])]
@@ -80,20 +94,21 @@ class RecordingController extends AbstractController
             return $this->json(['error' => 'File too large (max 50 MB).'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        if (!is_dir($this->recordingsDir)) {
-            if (!mkdir($this->recordingsDir, 0755, true) && !is_dir($this->recordingsDir)) {
+        $userDir = $this->recordingsDir . '/' . $user->getId();
+        if (!is_dir($userDir)) {
+            if (!mkdir($userDir, 0755, true) && !is_dir($userDir)) {
                 return $this->json(['error' => 'Server-Fehler: Aufnahmeverzeichnis konnte nicht erstellt werden.'], Response::HTTP_INTERNAL_SERVER_ERROR);
             }
         }
 
-        if (!is_writable($this->recordingsDir)) {
+        if (!is_writable($userDir)) {
             return $this->json(['error' => 'Server-Fehler: Aufnahmeverzeichnis nicht beschreibbar.'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
         $fileSize = $file->getSize();
-        $filename = sprintf('%d_%s.%s', $user->getId(), bin2hex(random_bytes(8)), $file->guessExtension() ?? 'bin');
+        $filename = sprintf('%s.%s', bin2hex(random_bytes(8)), $file->guessExtension() ?? 'bin');
         try {
-            $file->move($this->recordingsDir, $filename);
+            $file->move($userDir, $filename);
         } catch (\Throwable $e) {
             return $this->json(['error' => 'Server-Fehler: Datei konnte nicht gespeichert werden. (' . $e->getMessage() . ')'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
@@ -108,7 +123,7 @@ class RecordingController extends AbstractController
         $em->persist($recording);
         $em->flush();
 
-        return $this->json($this->serialize($recording, false), Response::HTTP_CREATED);
+        return $this->json($this->serialize($recording, false, []), Response::HTTP_CREATED);
     }
 
     #[Route('/{id}', methods: ['DELETE'])]
@@ -123,11 +138,12 @@ class RecordingController extends AbstractController
             return $this->json(['error' => 'Not found.'], Response::HTTP_NOT_FOUND);
         }
 
+        // Nur eigene Aufnahmen löschen (Lehrer darf alle löschen)
         if (!$user->isTeacher() && $recording->getUser()->getId() !== $user->getId()) {
             return $this->json(['error' => 'Access denied.'], Response::HTTP_FORBIDDEN);
         }
 
-        $path = $this->recordingsDir . '/' . $recording->getFilename();
+        $path = $this->recordingsDir . '/' . $recording->getUser()->getId() . '/' . $recording->getFilename();
         if (file_exists($path)) {
             try { unlink($path); } catch (\Throwable) {}
         }
@@ -149,11 +165,11 @@ class RecordingController extends AbstractController
             return $this->json(['error' => 'Not found.'], Response::HTTP_NOT_FOUND);
         }
 
-        if (!$user->isTeacher() && $recording->getUser()->getId() !== $user->getId()) {
+        if (!$user->canAccessRecording($recording)) {
             return $this->json(['error' => 'Access denied.'], Response::HTTP_FORBIDDEN);
         }
 
-        $path = $this->recordingsDir . '/' . $recording->getFilename();
+        $path = $this->recordingsDir . '/' . $recording->getUser()->getId() . '/' . $recording->getFilename();
         if (!file_exists($path)) {
             return $this->json(['error' => 'File not found.'], Response::HTTP_NOT_FOUND);
         }
@@ -161,18 +177,21 @@ class RecordingController extends AbstractController
         return new BinaryFileResponse($path, 200, ['Content-Type' => $recording->getMimeType()]);
     }
 
-    private function serialize(Recording $r, bool $includeFamily): array
+    private function serialize(Recording $r, bool $forTeacher, array $familyNames): array
     {
         $data = [
-            'id'          => $r->getId(),
-            'recordedAt'  => $r->getRecordedAt()->format(\DateTimeInterface::ATOM),
-            'deleteAt'    => $r->getDeleteAt()?->format(\DateTimeInterface::ATOM),
+            'id'           => $r->getId(),
+            'recordedAt'   => $r->getRecordedAt()->format(\DateTimeInterface::ATOM),
+            'deleteAt'     => $r->getDeleteAt()?->format(\DateTimeInterface::ATOM),
             'commentCount' => $r->getComments()->count(),
+            'uploaderName' => $r->getUser()->getFamilyName(),
+            'uploaderId'   => $r->getUser()->getId(),
         ];
 
-        if ($includeFamily) {
-            $data['family'] = $r->getUser()->getFamilyName();
-            $data['familyId'] = $r->getUser()->getId();
+        if ($forTeacher) {
+            $gid = $r->getUser()->getFamilyGroupId();
+            $data['family']   = $familyNames[$gid] ?? $r->getUser()->getFamilyName();
+            $data['familyId'] = $gid;
         }
 
         return $data;

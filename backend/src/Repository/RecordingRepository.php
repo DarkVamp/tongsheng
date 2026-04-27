@@ -38,6 +38,20 @@ class RecordingRepository extends ServiceEntityRepository
     /**
      * @return Recording[]
      */
+    public function findByFamilyGroup(int $familyGroupId): array
+    {
+        return $this->createQueryBuilder('r')
+            ->join('r.user', 'u')
+            ->where('u.familyGroupId = :groupId')
+            ->setParameter('groupId', $familyGroupId)
+            ->orderBy('r.recordedAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @return Recording[]
+     */
     public function findExpired(): array
     {
         return $this->createQueryBuilder('r')

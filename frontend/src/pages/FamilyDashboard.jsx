@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import fixWebmDuration from 'fix-webm-duration'
-import { getRecordings, uploadRecording, deleteRecording, fetchAudioBlob, getComments } from '../api/recordings'
+import { getRecordings, uploadRecording, deleteRecording, fetchAudioBlob, getComments, addComment } from '../api/recordings'
 import { logout, updateLocale } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
 import { useLocale } from '../context/LocaleContext'
@@ -27,13 +27,23 @@ export default function FamilyDashboard() {
   const [uploadError, setUploadError] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [recording, setRecording] = useState(false)
-  const [activeComments, setActiveComments] = useState(null)
-  const [comments, setComments] = useState([])
+  const [activeId, setActiveId] = useState(null)
+  const [comments, setComments] = useState({})
+  const [newComment, setNewComment] = useState({})
+  const [submitting, setSubmitting] = useState(false)
   const mediaRecorderRef = useRef(null)
   const chunksRef = useRef([])
   const recordingStartRef = useRef(null)
 
+  const isMember = user?.role === 'family_member'
+
+  // Nur eigene Aufnahmen zählen für das Tageslimit
   const hasUploadedToday = recordings.some(r => {
+    if (r.uploaderId !== undefined && r.uploaderId !== null) {
+      // uploaderId kommt vom Backend; eigene Aufnahme wenn gleiche uploader
+      const isOwn = r.uploaderId === (user?.id ?? -1)
+      if (!isOwn) return false
+    }
     const d = new Date(r.recordedAt)
     const today = new Date()
     return d.toDateString() === today.toDateString()
@@ -123,14 +133,38 @@ export default function FamilyDashboard() {
     setRecordings(prev => prev.filter(r => r.id !== id))
   }
 
-  const openComments = async (id) => {
-    if (activeComments === id) { setActiveComments(null); return }
-    setActiveComments(id)
-    const c = await getComments(id)
-    setComments(c)
+  const toggleComments = async (id) => {
+    if (activeId === id) { setActiveId(null); return }
+    setActiveId(id)
+    if (!comments[id]) {
+      const c = await getComments(id)
+      setComments(prev => ({ ...prev, [id]: c }))
+    }
+  }
+
+  const submitComment = async (recordingId) => {
+    const text = (newComment[recordingId] ?? '').trim()
+    if (!text) return
+    setSubmitting(true)
+    try {
+      const c = await addComment(recordingId, text)
+      setComments(prev => ({ ...prev, [recordingId]: [...(prev[recordingId] ?? []), c] }))
+      setNewComment(prev => ({ ...prev, [recordingId]: '' }))
+      setRecordings(prev => prev.map(r =>
+        r.id === recordingId ? { ...r, commentCount: r.commentCount + 1 } : r
+      ))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const dateLocale = t('date.locale')
+
+  // Ob eine Aufnahme dem eingeloggten User gehört (für Löschen-Button)
+  const isOwn = (r) => {
+    if (r.uploaderId === undefined || r.uploaderId === null) return true // Fallback für alte Daten
+    return r.uploaderId === user?.id
+  }
 
   return (
     <div className="dashboard">
@@ -172,35 +206,72 @@ export default function FamilyDashboard() {
         </section>
 
         <section className="recordings-section">
-          <h2>{t('family.myRecordings')}</h2>
+          <h2>{t('family.allRecordings')}</h2>
           {deleteError && <p className="error">{deleteError}</p>}
           {recordings.length === 0 ? (
             <p className="empty">{t('family.noRecordings')}</p>
           ) : (
             <ul className="recording-list">
               {recordings.map(r => (
-                <li key={r.id} className="recording-item">
+                <li key={r.id} className={`recording-item ${activeId === r.id ? 'active' : ''}`}>
                   <div className="recording-meta">
-                    <span className="recording-date">
-                      {new Date(r.recordedAt).toLocaleDateString(dateLocale, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
-                    </span>
-                    {r.commentCount > 0 && (
-                      <button className="btn-comments" onClick={() => openComments(r.id)}>
-                        {t('family.comments', r.commentCount)}
+                    <div>
+                      <span className="recording-date">
+                        {new Date(r.recordedAt).toLocaleDateString(dateLocale, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </span>
+                      {r.uploaderName && (
+                        <span className="uploader-badge"> · {r.uploaderName}</span>
+                      )}
+                    </div>
+                    <div className="recording-actions">
+                      <button className="btn-toggle" onClick={() => toggleComments(r.id)}>
+                        {activeId === r.id
+                          ? t('teacher.close')
+                          : r.commentCount
+                            ? t('family.comments', r.commentCount)
+                            : t('teacher.open')}
                       </button>
-                    )}
+                      {isOwn(r) && (
+                        <button className="btn-delete" onClick={() => handleDelete(r.id)}>{t('common.delete')}</button>
+                      )}
+                    </div>
                   </div>
-                  <AuthAudio id={r.id} className="audio-player" />
-                  <button className="btn-delete" onClick={() => handleDelete(r.id)}>{t('common.delete')}</button>
-                  {activeComments === r.id && (
-                    <ul className="comment-list">
-                      {comments.map(c => (
-                        <li key={c.id} className="comment">
-                          <p>{c.content}</p>
-                          <span className="comment-date">{new Date(c.createdAt).toLocaleDateString(dateLocale)}</span>
-                        </li>
-                      ))}
-                    </ul>
+
+                  {activeId === r.id && (
+                    <div className="recording-detail">
+                      <AuthAudio id={r.id} className="audio-player" />
+
+                      <div className="comments-section">
+                        <h3>{t('teacher.comments')}</h3>
+                        {(comments[r.id] ?? []).length === 0 ? (
+                          <p className="empty">{t('teacher.noComments')}</p>
+                        ) : (
+                          <ul className="comment-list">
+                            {(comments[r.id] ?? []).map(c => (
+                              <li key={c.id} className="comment">
+                                <p>{c.content}</p>
+                                <span className="comment-date">{new Date(c.createdAt).toLocaleDateString(dateLocale)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        <div className="comment-form">
+                          <textarea
+                            rows={2}
+                            placeholder={t('teacher.commentPlaceholder')}
+                            value={newComment[r.id] ?? ''}
+                            onChange={e => setNewComment(prev => ({ ...prev, [r.id]: e.target.value }))}
+                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(r.id) } }}
+                          />
+                          <button
+                            onClick={() => submitComment(r.id)}
+                            disabled={submitting || !(newComment[r.id] ?? '').trim()}
+                          >
+                            {submitting ? t('common.sending') : t('common.send')}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </li>
               ))}

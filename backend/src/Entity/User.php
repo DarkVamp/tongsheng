@@ -25,7 +25,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private string $familyName;
 
     #[ORM\Column(length: 20)]
-    private string $role = 'family'; // 'family' | 'teacher'
+    private string $role = 'family'; // 'family' | 'family_member' | 'teacher'
+
+    // Alle Mitglieder einer Familie teilen dieselbe family_group_id.
+    // Primäre Family-Accounts: family_group_id = eigene id.
+    // Family-Member: family_group_id = id des primären Family-Accounts.
+    #[ORM\Column(nullable: true)]
+    private ?int $familyGroupId = null;
 
     #[ORM\Column(length: 255)]
     private string $password;
@@ -55,6 +61,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getRole(): string { return $this->role; }
     public function setRole(string $role): static { $this->role = $role; return $this; }
 
+    public function getFamilyGroupId(): ?int { return $this->familyGroupId; }
+    public function setFamilyGroupId(?int $familyGroupId): static { $this->familyGroupId = $familyGroupId; return $this; }
+
     public function getPassword(): string { return $this->password; }
     public function setPassword(string $password): static { $this->password = $password; return $this; }
 
@@ -72,4 +81,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setLocale(string $locale): static { $this->locale = $locale; return $this; }
 
     public function isTeacher(): bool { return $this->role === 'teacher'; }
+    public function isFamily(): bool { return $this->role === 'family'; }
+    public function isFamilyMember(): bool { return $this->role === 'family_member'; }
+
+    public function canAccessRecording(Recording $recording): bool
+    {
+        if ($this->isTeacher()) return true;
+        return $recording->getUser()->getFamilyGroupId() === $this->familyGroupId;
+    }
 }

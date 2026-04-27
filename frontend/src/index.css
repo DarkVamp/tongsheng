@@ -237,6 +237,125 @@ body {
 .locale-switcher button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 .login-card .locale-switcher { justify-content: center; margin-top: 1rem; }
 
+/* ─── Uploader Badge ─── */
+.uploader-badge { font-size: .78rem; color: var(--text-muted); font-weight: 400; }
+
+/* ─── Invite Bar ─── */
+.invite-bar { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: .5rem 1.125rem;
+  font-size: .9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-primary:hover { background: var(--primary-hover); }
+
+/* ─── Invitations List ─── */
+.invitations-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+.invitations-section h3 { font-size: .95rem; font-weight: 600; margin-bottom: .75rem; }
+.invitation-list { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+.invitation-item { display: flex; align-items: center; gap: .75rem; font-size: .875rem; flex-wrap: wrap; }
+.inv-email { flex: 1; font-weight: 500; word-break: break-all; }
+.inv-role { font-size: .78rem; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: .125rem .5rem; color: var(--text-muted); white-space: nowrap; }
+
+/* ─── Modal ─── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 100;
+}
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.modal h2 { font-size: 1.15rem; font-weight: 700; color: var(--text); }
+.modal form { display: flex; flex-direction: column; gap: .875rem; }
+.modal label { display: flex; flex-direction: column; gap: .375rem; font-size: .875rem; font-weight: 500; }
+.modal input, .modal select {
+  padding: .575rem .875rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .95rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+  background: var(--surface);
+}
+.modal input:focus, .modal select:focus { border-color: var(--primary); }
+.modal-actions { display: flex; gap: .625rem; margin-top: .25rem; }
+.modal-actions button { flex: 1; padding: .625rem; border-radius: 8px; font-size: .9rem; font-weight: 600; cursor: pointer; border: none; transition: background .15s; }
+.modal-actions button[type=submit] { background: var(--primary); color: #fff; }
+.modal-actions button[type=submit]:hover { background: var(--primary-hover); }
+.modal-actions button[type=submit]:disabled { opacity: .6; cursor: not-allowed; }
+.modal-actions .btn-ghost { border: 1px solid var(--border); background: none; color: var(--text); }
+.modal-actions .btn-ghost:hover { background: var(--bg); }
+
+/* ─── Invite Success ─── */
+.invite-success { display: flex; flex-direction: column; gap: .875rem; }
+.invite-success p { font-size: .9rem; }
+.invite-link-box { display: flex; gap: .5rem; }
+.invite-link-box input {
+  flex: 1;
+  padding: .5rem .75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .78rem;
+  font-family: monospace;
+  outline: none;
+  background: var(--bg);
+  color: var(--text);
+}
+.invite-link-box button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: .5rem .75rem;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.invite-link-box button:hover { background: var(--primary-hover); }
+.invite-expires { font-size: .78rem; color: var(--text-muted); }
+
+/* ─── Register Info Box ─── */
+.register-info {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  font-size: .875rem;
+  margin-bottom: .25rem;
+}
+.register-info p { color: var(--text); }
+
 /* ─── Responsive ─── */
 @media (max-width: 480px) {
   .dashboard-header { padding: .75rem 1rem; }

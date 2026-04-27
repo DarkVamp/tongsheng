@@ -6,13 +6,15 @@ import ProtectedRoute from './components/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
 import FamilyDashboard from './pages/FamilyDashboard'
 import TeacherDashboard from './pages/TeacherDashboard'
+import RegisterPage from './pages/RegisterPage'
 import './index.css'
 
 function RootRedirect() {
   const { user, loading } = useAuth()
   if (loading) return <div className="loading">Laden…</div>
   if (!user || !user.role) return <Navigate to="/login" replace />
-  return <Navigate to={user.role === 'teacher' ? '/teacher' : '/family'} replace />
+  if (user.role === 'teacher') return <Navigate to="/teacher" replace />
+  return <Navigate to="/family" replace />
 }
 
 function LocaleSync() {
@@ -31,10 +33,15 @@ export default function App() {
         <LocaleSync />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route path="/" element={<RootRedirect />} />
           <Route
             path="/family"
-            element={<ProtectedRoute role="family"><FamilyDashboard /></ProtectedRoute>}
+            element={
+              <ProtectedRoute role={['family', 'family_member']}>
+                <FamilyDashboard />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/teacher"

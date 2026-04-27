@@ -28,7 +28,7 @@ class DeleteOldRecordingsCommand extends Command
         $deleted = 0;
 
         foreach ($expired as $recording) {
-            $path = $this->recordingsDir . '/' . $recording->getFilename();
+            $path = $this->recordingsDir . '/' . $recording->getUser()->getId() . '/' . $recording->getFilename();
             if (file_exists($path)) {
                 unlink($path);
             }

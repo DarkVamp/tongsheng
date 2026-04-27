@@ -26,7 +26,7 @@ class CommentController extends AbstractController
             return $this->json(['error' => 'Not found.'], Response::HTTP_NOT_FOUND);
         }
 
-        if (!$user->isTeacher() && $recording->getUser()->getId() !== $user->getId()) {
+        if (!$user->canAccessRecording($recording)) {
             return $this->json(['error' => 'Access denied.'], Response::HTTP_FORBIDDEN);
         }
 
@@ -47,13 +47,13 @@ class CommentController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
-        if (!$user->isTeacher()) {
-            return $this->json(['error' => 'Only teachers can comment.'], Response::HTTP_FORBIDDEN);
-        }
-
         $recording = $repo->find($recordingId);
         if (!$recording) {
             return $this->json(['error' => 'Not found.'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$user->canAccessRecording($recording)) {
+            return $this->json(['error' => 'Access denied.'], Response::HTTP_FORBIDDEN);
         }
 
         $data = json_decode($request->getContent(), true);

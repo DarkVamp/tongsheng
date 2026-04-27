@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment } from '../api/recordings'
+import { getFamilies, getInvitations, createInvitation, deleteInvitation } from '../api/invitations'
 import { logout, updateLocale } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
 import { useLocale } from '../context/LocaleContext'
@@ -17,6 +18,96 @@ function AuthAudio({ id, className }) {
   return <audio controls src={src} className={className} />
 }
 
+function InviteModal({ families, onClose, onCreated, t }) {
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState('family')
+  const [familyGroupId, setFamilyGroupId] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [created, setCreated] = useState(null)
+
+  const baseUrl = window.location.origin
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setSubmitting(true)
+    try {
+      const inv = await createInvitation({ email, role, familyGroupId: role === 'family_member' ? familyGroupId : null })
+      setCreated(inv)
+      onCreated(inv)
+    } catch (err) {
+      setError(err.response?.data?.error ?? t('teacher.inviteError'))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <h2>{t('teacher.inviteTitle')}</h2>
+
+        {created ? (
+          <div className="invite-success">
+            <p>{t('teacher.inviteSuccess')}</p>
+            <div className="invite-link-box">
+              <input
+                readOnly
+                value={`${baseUrl}/register?token=${created.token}`}
+                onFocus={e => e.target.select()}
+              />
+              <button onClick={() => navigator.clipboard?.writeText(`${baseUrl}/register?token=${created.token}`)}>
+                {t('teacher.copyLink')}
+              </button>
+            </div>
+            <p className="invite-expires">{t('teacher.inviteExpires', new Date(created.expiresAt).toLocaleDateString())}</p>
+            <button className="btn-ghost" onClick={onClose}>{t('teacher.close')}</button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <label>
+              {t('teacher.inviteEmail')}
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                autoFocus
+              />
+            </label>
+            <label>
+              {t('teacher.inviteRole')}
+              <select value={role} onChange={e => { setRole(e.target.value); setFamilyGroupId('') }}>
+                <option value="family">{t('teacher.roleFamily')}</option>
+                <option value="family_member">{t('teacher.roleFamilyMember')}</option>
+              </select>
+            </label>
+            {role === 'family_member' && (
+              <label>
+                {t('teacher.inviteFamily')}
+                <select value={familyGroupId} onChange={e => setFamilyGroupId(e.target.value)} required>
+                  <option value="">{t('teacher.selectFamily')}</option>
+                  {families.map(f => (
+                    <option key={f.familyGroupId} value={f.familyGroupId}>{f.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {error && <p className="error">{error}</p>}
+            <div className="modal-actions">
+              <button type="submit" disabled={submitting || (role === 'family_member' && !familyGroupId)}>
+                {submitting ? t('common.sending') : t('teacher.inviteSend')}
+              </button>
+              <button type="button" className="btn-ghost" onClick={onClose}>{t('common.cancel')}</button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function TeacherDashboard() {
   const { user, signOut } = useAuth()
   const { locale, setLocale, t } = useLocale()
@@ -29,8 +120,15 @@ export default function TeacherDashboard() {
   const [submitting, setSubmitting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
 
+  const [showInvite, setShowInvite] = useState(false)
+  const [families, setFamilies] = useState([])
+  const [invitations, setInvitations] = useState([])
+  const [showInvitations, setShowInvitations] = useState(false)
+
   useEffect(() => {
     getRecordings().then(setRecordings)
+    getFamilies().then(setFamilies)
+    getInvitations().then(setInvitations)
   }, [])
 
   const switchLocale = async (l) => {
@@ -84,13 +182,21 @@ export default function TeacherDashboard() {
     }
   }
 
+  const handleDeleteInvitation = async (id) => {
+    try {
+      await deleteInvitation(id)
+      setInvitations(prev => prev.filter(i => i.id !== id))
+    } catch {}
+  }
+
   const filtered = recordings.filter(r =>
     !filter || r.family?.toLowerCase().includes(filter.toLowerCase())
   )
 
   const grouped = filtered.reduce((acc, r) => {
-    const key = r.family ?? 'Unbekannt'
-    ;(acc[key] = acc[key] ?? []).push(r)
+    const key = r.familyId ?? 'unknown'
+    if (!acc[key]) acc[key] = { name: r.family ?? 'Unbekannt', recs: [] }
+    acc[key].recs.push(r)
     return acc
   }, {})
 
@@ -111,7 +217,35 @@ export default function TeacherDashboard() {
       </header>
 
       <main className="dashboard-main">
+        {/* Einladungsbereich */}
+        <div className="invite-bar">
+          <button className="btn-primary" onClick={() => setShowInvite(true)}>
+            {t('teacher.inviteButton')}
+          </button>
+          {invitations.length > 0 && (
+            <button className="btn-ghost" onClick={() => setShowInvitations(v => !v)}>
+              {t('teacher.pendingInvitations', invitations.length)}
+            </button>
+          )}
+        </div>
+
+        {showInvitations && invitations.length > 0 && (
+          <section className="invitations-section">
+            <h3>{t('teacher.pendingInvitationsTitle')}</h3>
+            <ul className="invitation-list">
+              {invitations.map(inv => (
+                <li key={inv.id} className="invitation-item">
+                  <span className="inv-email">{inv.email}</span>
+                  <span className="inv-role">{inv.role === 'family_member' ? t('teacher.roleFamilyMember') : t('teacher.roleFamily')}</span>
+                  <button className="btn-delete" onClick={() => handleDeleteInvitation(inv.id)}>{t('common.delete')}</button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {deleteError && <p className="error">{deleteError}</p>}
+
         <div className="filter-bar">
           <input
             type="search"
@@ -122,16 +256,21 @@ export default function TeacherDashboard() {
           <span className="count">{t('teacher.recordingCount', filtered.length)}</span>
         </div>
 
-        {Object.entries(grouped).map(([family, recs]) => (
-          <section key={family} className="family-section">
-            <h2 className="family-name">{family}</h2>
+        {Object.entries(grouped).map(([key, { name, recs }]) => (
+          <section key={key} className="family-section">
+            <h2 className="family-name">{name}</h2>
             <ul className="recording-list">
               {recs.map(r => (
                 <li key={r.id} className={`recording-item ${activeId === r.id ? 'active' : ''}`}>
                   <div className="recording-meta">
-                    <span className="recording-date">
-                      {new Date(r.recordedAt).toLocaleDateString(dateLocale, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
-                    </span>
+                    <div>
+                      <span className="recording-date">
+                        {new Date(r.recordedAt).toLocaleDateString(dateLocale, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </span>
+                      {r.uploaderName && r.uploaderName !== name && (
+                        <span className="uploader-badge"> · {r.uploaderName}</span>
+                      )}
+                    </div>
                     <div className="recording-actions">
                       <button className="btn-toggle" onClick={() => toggleRecording(r.id)}>
                         {activeId === r.id
@@ -185,6 +324,15 @@ export default function TeacherDashboard() {
 
         {filtered.length === 0 && <p className="empty">{t('teacher.noRecordings')}</p>}
       </main>
+
+      {showInvite && (
+        <InviteModal
+          families={families}
+          t={t}
+          onClose={() => setShowInvite(false)}
+          onCreated={(inv) => setInvitations(prev => [inv, ...prev])}
+        />
+      )}
     </div>
   )
 }
