@@ -18,11 +18,11 @@ class Invitation
     private string $email;
 
     #[ORM\Column(length: 20)]
-    private string $role = 'family'; // 'family' | 'family_member'
+    private string $role = 'family_member';
 
-    // Nur gesetzt wenn role='family_member' — zeigt auf die family_group_id der zugehörigen Familie
-    #[ORM\Column(nullable: true)]
-    private ?int $familyGroupId = null;
+    #[ORM\ManyToOne(targetEntity: Family::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    private ?Family $family = null;
 
     #[ORM\Column(length: 64, unique: true)]
     private string $token;
@@ -52,8 +52,8 @@ class Invitation
     public function getRole(): string { return $this->role; }
     public function setRole(string $role): static { $this->role = $role; return $this; }
 
-    public function getFamilyGroupId(): ?int { return $this->familyGroupId; }
-    public function setFamilyGroupId(?int $familyGroupId): static { $this->familyGroupId = $familyGroupId; return $this; }
+    public function getFamily(): ?Family { return $this->family; }
+    public function setFamily(?Family $family): static { $this->family = $family; return $this; }
 
     public function getToken(): string { return $this->token; }
 

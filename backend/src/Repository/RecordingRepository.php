@@ -38,12 +38,12 @@ class RecordingRepository extends ServiceEntityRepository
     /**
      * @return Recording[]
      */
-    public function findByFamilyGroup(int $familyGroupId): array
+    public function findByFamily(int $familyId): array
     {
         return $this->createQueryBuilder('r')
             ->join('r.user', 'u')
-            ->where('u.familyGroupId = :groupId')
-            ->setParameter('groupId', $familyGroupId)
+            ->where('u.family = :familyId')
+            ->setParameter('familyId', $familyId)
             ->orderBy('r.recordedAt', 'DESC')
             ->getQuery()
             ->getResult();

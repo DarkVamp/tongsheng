@@ -51,6 +51,13 @@ const translations = {
     'teacher.tabStudents': 'Schüler',
     'teacher.tabLessons': 'Unterricht',
 
+    // Familien-Verwaltung
+    'teacher.createFamily': 'Familie anlegen',
+    'teacher.familyNamePlaceholder': 'Familienname…',
+    'teacher.deleteFamily': 'Familie löschen',
+    'teacher.confirmDeleteFamily': (name) => `Familie „${name}" und alle zugehörigen Mitglieder wirklich löschen?`,
+    'teacher.noMembers': 'Keine Mitglieder.',
+
     // Schüler-Tab
     'teacher.markStudent': 'Als Schüler markieren',
     'teacher.unmarkStudent': 'Schüler-Markierung entfernen',
@@ -160,6 +167,13 @@ const translations = {
     'teacher.tabRecordings': '录音',
     'teacher.tabStudents': '学生',
     'teacher.tabLessons': '课程',
+
+    // 家庭管理
+    'teacher.createFamily': '创建家庭',
+    'teacher.familyNamePlaceholder': '家庭名称…',
+    'teacher.deleteFamily': '删除家庭',
+    'teacher.confirmDeleteFamily': (name) => `确定删除家庭「${name}」及其所有成员？`,
+    'teacher.noMembers': '暂无成员。',
 
     // 学生标签页
     'teacher.markStudent': '标为学生',

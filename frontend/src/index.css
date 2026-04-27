@@ -458,6 +458,28 @@ body {
 .tab-nav button:hover { color: var(--text); }
 .tab-nav button.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
 
+/* ─── Familie anlegen ─── */
+.family-create-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  display: flex;
+  gap: .625rem;
+  align-items: center;
+}
+.family-create-form input {
+  flex: 1;
+  padding: .5rem .75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+}
+.family-create-form input:focus { border-color: var(--primary); }
+
 /* ─── Schüler Tab ─── */
 .students-section {
   background: var(--surface);
@@ -465,7 +487,8 @@ body {
   border-radius: var(--radius);
   padding: 1.25rem;
 }
-.students-section h2 { font-size: 1rem; font-weight: 600; color: var(--primary); margin-bottom: .75rem; }
+.students-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+.students-section-header h2 { font-size: 1rem; font-weight: 600; color: var(--primary); }
 .member-list { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
 .member-item {
   display: flex;

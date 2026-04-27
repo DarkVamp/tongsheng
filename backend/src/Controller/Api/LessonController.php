@@ -118,14 +118,12 @@ class LessonController extends AbstractController
             $attendanceMap[$a->getStudent()->getId()] = $a->isPresent();
         }
 
-        $studentData = array_map(function (User $s) use ($attendanceMap, $userRepo) {
-            // Familienname des primären Family-Accounts für Gruppierung
-            $primaryFamily = $s->getFamilyGroupId() ? $userRepo->findOneBy(['id' => $s->getFamilyGroupId()]) : null;
+        $studentData = array_map(function (User $s) use ($attendanceMap) {
             return [
-                'id'          => $s->getId(),
-                'name'        => $s->getFamilyName(),
-                'familyName'  => $primaryFamily?->getFamilyName() ?? $s->getFamilyName(),
-                'present'     => $attendanceMap[$s->getId()] ?? false,
+                'id'         => $s->getId(),
+                'name'       => $s->getFamilyName(),
+                'familyName' => $s->getFamily()?->getName() ?? $s->getFamilyName(),
+                'present'    => $attendanceMap[$s->getId()] ?? false,
             ];
         }, $students);
 

@@ -5,7 +5,6 @@ namespace App\Controller\Api;
 use App\Entity\Recording;
 use App\Entity\User;
 use App\Repository\RecordingRepository;
-use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -36,7 +35,7 @@ class RecordingController extends AbstractController
     ) {}
 
     #[Route('', methods: ['GET'])]
-    public function list(RecordingRepository $repo, UserRepository $userRepo): JsonResponse
+    public function list(RecordingRepository $repo): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -44,23 +43,12 @@ class RecordingController extends AbstractController
         if ($user->isTeacher()) {
             $recordings = $repo->findBy([], ['recordedAt' => 'DESC']);
 
-            // Gruppen-Anzeigenamen vorausberechnen: primary family user name je family_group_id
-            $familyNames = [];
-            foreach ($recordings as $r) {
-                $gid = $r->getUser()->getFamilyGroupId();
-                if ($gid !== null && !isset($familyNames[$gid])) {
-                    $primaryUser = $userRepo->find($gid);
-                    $familyNames[$gid] = $primaryUser?->getFamilyName() ?? 'Unbekannt';
-                }
-            }
-
-            return $this->json(array_map(fn(Recording $r) => $this->serialize($r, true, $familyNames), $recordings));
+            return $this->json(array_map(fn(Recording $r) => $this->serialize($r, true), $recordings));
         }
 
-        // family und family_member sehen alle Aufnahmen ihrer Gruppe
-        $recordings = $repo->findByFamilyGroup($user->getFamilyGroupId());
+        $recordings = $repo->findByFamily($user->getFamily()?->getId() ?? 0);
 
-        return $this->json(array_map(fn(Recording $r) => $this->serialize($r, false, []), $recordings));
+        return $this->json(array_map(fn(Recording $r) => $this->serialize($r, false), $recordings));
     }
 
     #[Route('', methods: ['POST'])]
@@ -123,7 +111,7 @@ class RecordingController extends AbstractController
         $em->persist($recording);
         $em->flush();
 
-        return $this->json($this->serialize($recording, false, []), Response::HTTP_CREATED);
+        return $this->json($this->serialize($recording, false), Response::HTTP_CREATED);
     }
 
     #[Route('/{id}', methods: ['DELETE'])]
@@ -177,7 +165,7 @@ class RecordingController extends AbstractController
         return new BinaryFileResponse($path, 200, ['Content-Type' => $recording->getMimeType()]);
     }
 
-    private function serialize(Recording $r, bool $forTeacher, array $familyNames): array
+    private function serialize(Recording $r, bool $forTeacher): array
     {
         $data = [
             'id'           => $r->getId(),
@@ -189,9 +177,9 @@ class RecordingController extends AbstractController
         ];
 
         if ($forTeacher) {
-            $gid = $r->getUser()->getFamilyGroupId();
-            $data['family']   = $familyNames[$gid] ?? $r->getUser()->getFamilyName();
-            $data['familyId'] = $gid;
+            $family = $r->getUser()->getFamily();
+            $data['family']   = $family?->getName() ?? $r->getUser()->getFamilyName();
+            $data['familyId'] = $family?->getId();
         }
 
         return $data;

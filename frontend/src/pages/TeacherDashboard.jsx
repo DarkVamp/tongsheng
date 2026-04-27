@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { Trash2, LogOut, Send, UserPlus, Copy, X, Search } from 'lucide-react'
 import Icon from '../components/Icon'
 import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment } from '../api/recordings'
-import { getFamilies, getInvitations, createInvitation, deleteInvitation } from '../api/invitations'
-import { getFamilyMembers, toggleStudent, getLessons, createLesson, deleteLesson, getLessonAttendance, setAttendance } from '../api/lessons'
+import { getInvitations, createInvitation, deleteInvitation } from '../api/invitations'
+import { getFamilies, createFamily, deleteFamily, getFamilyMembers } from '../api/families'
+import { toggleStudent, getLessons, createLesson, deleteLesson, getLessonAttendance, setAttendance } from '../api/lessons'
 import { logout, updateLocale } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
 import { useLocale } from '../context/LocaleContext'
@@ -23,8 +24,7 @@ function AuthAudio({ id, className }) {
 
 function InviteModal({ families, onClose, onCreated, t }) {
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState('family')
-  const [familyGroupId, setFamilyGroupId] = useState('')
+  const [familyId, setFamilyId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [created, setCreated] = useState(null)
@@ -36,7 +36,7 @@ function InviteModal({ families, onClose, onCreated, t }) {
     setError('')
     setSubmitting(true)
     try {
-      const inv = await createInvitation({ email, role, familyGroupId: role === 'family_member' ? familyGroupId : null })
+      const inv = await createInvitation({ email, familyId: familyId ? Number(familyId) : null })
       setCreated(inv)
       onCreated(inv)
     } catch (err) {
@@ -78,26 +78,17 @@ function InviteModal({ families, onClose, onCreated, t }) {
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
             </label>
             <label>
-              {t('teacher.inviteRole')}
-              <select value={role} onChange={e => { setRole(e.target.value); setFamilyGroupId('') }}>
-                <option value="family">{t('teacher.roleFamily')}</option>
-                <option value="family_member">{t('teacher.roleFamilyMember')}</option>
+              {t('teacher.inviteFamily')}
+              <select value={familyId} onChange={e => setFamilyId(e.target.value)} required>
+                <option value="">{t('teacher.selectFamily')}</option>
+                {families.map(f => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
               </select>
             </label>
-            {role === 'family_member' && (
-              <label>
-                {t('teacher.inviteFamily')}
-                <select value={familyGroupId} onChange={e => setFamilyGroupId(e.target.value)} required>
-                  <option value="">{t('teacher.selectFamily')}</option>
-                  {families.map(f => (
-                    <option key={f.familyGroupId} value={f.familyGroupId}>{f.name}</option>
-                  ))}
-                </select>
-              </label>
-            )}
             {error && <p className="error">{error}</p>}
             <div className="modal-actions">
-              <button type="submit" disabled={submitting || (role === 'family_member' && !familyGroupId)}>
+              <button type="submit" disabled={submitting || !familyId}>
                 {submitting ? t('common.sending') : t('teacher.inviteSend')}
               </button>
               <button type="button" className="btn-ghost" onClick={onClose}>{t('common.cancel')}</button>
@@ -311,13 +302,38 @@ function RecordingsTab({ t, dateLocale, families, invitations, setInvitations })
 
 // ── Schüler Tab ────────────────────────────────────────────────────────────
 
-function StudentsTab({ t }) {
+function StudentsTab({ t, onFamiliesChanged }) {
   const [familyGroups, setFamilyGroups] = useState([])
   const [loaded, setLoaded] = useState(false)
+  const [newFamilyName, setNewFamilyName] = useState('')
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     getFamilyMembers().then(data => { setFamilyGroups(data); setLoaded(true) })
   }, [])
+
+  const handleCreateFamily = async (e) => {
+    e.preventDefault()
+    if (!newFamilyName.trim()) return
+    setCreating(true)
+    try {
+      const family = await createFamily(newFamilyName.trim())
+      setFamilyGroups(prev => [...prev, { familyId: family.id, familyName: family.name, members: [] }].sort((a, b) => a.familyName.localeCompare(b.familyName)))
+      setNewFamilyName('')
+      onFamiliesChanged()
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleDeleteFamily = async (familyId, familyName) => {
+    if (!confirm(t('teacher.confirmDeleteFamily', familyName))) return
+    try {
+      await deleteFamily(familyId)
+      setFamilyGroups(prev => prev.filter(g => g.familyId !== familyId))
+      onFamiliesChanged()
+    } catch {}
+  }
 
   const handleToggleStudent = async (userId) => {
     try {
@@ -329,30 +345,62 @@ function StudentsTab({ t }) {
     } catch {}
   }
 
-  if (!loaded) return <p className="empty">{t('common.loading')}</p>
-  if (familyGroups.length === 0) return <p className="empty">{t('teacher.noFamilies')}</p>
-
   return (
     <>
+      <form className="family-create-form" onSubmit={handleCreateFamily}>
+        <input
+          type="text"
+          value={newFamilyName}
+          onChange={e => setNewFamilyName(e.target.value)}
+          placeholder={t('teacher.familyNamePlaceholder')}
+        />
+        <button type="submit" className="btn-primary" disabled={creating || !newFamilyName.trim()}>
+          <Icon name="add" size={15} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+          {t('teacher.createFamily')}
+        </button>
+      </form>
+
+      {!loaded && <p className="empty">{t('common.loading')}</p>}
+      {loaded && familyGroups.length === 0 && <p className="empty">{t('teacher.noFamilies')}</p>}
+
       {familyGroups.map(g => (
-        <section key={g.familyGroupId} className="students-section">
-          <h2>{g.familyName}</h2>
-          <ul className="member-list">
-            {g.members.map(m => (
-              <li key={m.id} className={`member-item${m.isStudent ? ' is-student' : ''}`}>
-                <span className="member-name">{m.name}</span>
-                {m.isStudent && <span className="student-badge"><Icon name="check" size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />{t('teacher.studentBadge')}</span>}
-                {!m.isStudent && <span className="member-role">{m.role === 'family_member' ? t('teacher.roleFamilyMember') : t('teacher.roleFamily')}</span>}
-                <button
-                  className="btn-student-toggle"
-                  onClick={() => handleToggleStudent(m.id)}
-                  title={m.isStudent ? t('teacher.unmarkStudent') : t('teacher.markStudent')}
-                >
-                  {m.isStudent ? <Icon name="close" size={13} style={{ display: 'inline', verticalAlign: 'middle' }} /> : <Icon name="check" size={13} style={{ display: 'inline', verticalAlign: 'middle' }} />}
-                </button>
-              </li>
-            ))}
-          </ul>
+        <section key={g.familyId} className="students-section">
+          <div className="students-section-header">
+            <h2>{g.familyName}</h2>
+            <button
+              className="btn-icon btn-delete"
+              onClick={() => handleDeleteFamily(g.familyId, g.familyName)}
+              title={t('teacher.deleteFamily')}
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+          {g.members.length === 0 ? (
+            <p className="empty">{t('teacher.noMembers')}</p>
+          ) : (
+            <ul className="member-list">
+              {g.members.map(m => (
+                <li key={m.id} className={`member-item${m.isStudent ? ' is-student' : ''}`}>
+                  <span className="member-name">{m.name}</span>
+                  {m.isStudent && (
+                    <span className="student-badge">
+                      <Icon name="check" size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />
+                      {t('teacher.studentBadge')}
+                    </span>
+                  )}
+                  <button
+                    className="btn-student-toggle"
+                    onClick={() => handleToggleStudent(m.id)}
+                    title={m.isStudent ? t('teacher.unmarkStudent') : t('teacher.markStudent')}
+                  >
+                    {m.isStudent
+                      ? <Icon name="close" size={13} style={{ display: 'inline', verticalAlign: 'middle' }} />
+                      : <Icon name="check" size={13} style={{ display: 'inline', verticalAlign: 'middle' }} />}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       ))}
     </>
@@ -529,8 +577,10 @@ export default function TeacherDashboard() {
   const [families, setFamilies] = useState([])
   const [invitations, setInvitations] = useState([])
 
+  const reloadFamilies = () => getFamilies().then(setFamilies)
+
   useEffect(() => {
-    getFamilies().then(setFamilies)
+    reloadFamilies()
     getInvitations().then(setInvitations)
   }, [])
 
@@ -589,7 +639,7 @@ export default function TeacherDashboard() {
             setInvitations={setInvitations}
           />
         )}
-        {tab === 'students' && <StudentsTab t={t} />}
+        {tab === 'students' && <StudentsTab t={t} onFamiliesChanged={reloadFamilies} />}
         {tab === 'lessons' && <LessonsTab t={t} dateLocale={dateLocale} />}
       </main>
     </div>
