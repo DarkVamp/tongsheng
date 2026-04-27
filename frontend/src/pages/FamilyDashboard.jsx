@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import fixWebmDuration from 'fix-webm-duration'
+import { Mic, StopCircle, Upload, Trash2, ChevronDown, ChevronUp, LogOut, Send } from 'lucide-react'
 import { getRecordings, uploadRecording, deleteRecording, fetchAudioBlob, getComments, addComment } from '../api/recordings'
 import { logout, updateLocale } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
@@ -35,18 +36,12 @@ export default function FamilyDashboard() {
   const chunksRef = useRef([])
   const recordingStartRef = useRef(null)
 
-  const isMember = user?.role === 'family_member'
-
-  // Nur eigene Aufnahmen zählen für das Tageslimit
   const hasUploadedToday = recordings.some(r => {
     if (r.uploaderId !== undefined && r.uploaderId !== null) {
-      // uploaderId kommt vom Backend; eigene Aufnahme wenn gleiche uploader
-      const isOwn = r.uploaderId === (user?.id ?? -1)
-      if (!isOwn) return false
+      if (r.uploaderId !== (user?.id ?? -1)) return false
     }
     const d = new Date(r.recordedAt)
-    const today = new Date()
-    return d.toDateString() === today.toDateString()
+    return d.toDateString() === new Date().toDateString()
   })
 
   useEffect(() => {
@@ -105,8 +100,7 @@ export default function FamilyDashboard() {
       const rec = await uploadRecording(file)
       setRecordings(prev => [rec, ...prev])
     } catch (err) {
-      const msg = err.response?.data?.error ?? t('family.uploadFailed')
-      setUploadError(msg)
+      setUploadError(err.response?.data?.error ?? t('family.uploadFailed'))
     } finally {
       setUploading(false)
     }
@@ -158,13 +152,12 @@ export default function FamilyDashboard() {
     }
   }
 
-  const dateLocale = t('date.locale')
-
-  // Ob eine Aufnahme dem eingeloggten User gehört (für Löschen-Button)
   const isOwn = (r) => {
-    if (r.uploaderId === undefined || r.uploaderId === null) return true // Fallback für alte Daten
+    if (r.uploaderId === undefined || r.uploaderId === null) return true
     return r.uploaderId === user?.id
   }
+
+  const dateLocale = t('date.locale')
 
   return (
     <div className="dashboard">
@@ -175,8 +168,11 @@ export default function FamilyDashboard() {
             <button className={locale === 'zh' ? 'active' : ''} onClick={() => switchLocale('zh')}>中文</button>
             <button className={locale === 'de' ? 'active' : ''} onClick={() => switchLocale('de')}>DE</button>
           </div>
-          <span>{user?.name}</span>
-          <button className="btn-ghost" onClick={handleLogout}>{t('common.logout')}</button>
+          <span className="user-name">{user?.name}</span>
+          <button className="btn-icon-text btn-ghost" onClick={handleLogout} title={t('common.logout')}>
+            <LogOut size={16} />
+            <span>{t('common.logout')}</span>
+          </button>
         </div>
       </header>
 
@@ -192,11 +188,12 @@ export default function FamilyDashboard() {
                 onClick={recording ? stopAndUpload : startRecording}
                 disabled={uploading}
               >
-                {recording ? t('family.stopUpload') : t('family.record')}
+                {recording ? <><StopCircle size={18} /><span>{t('family.stopUpload')}</span></> : <><Mic size={18} /><span>{t('family.record')}</span></>}
               </button>
               <span className="or">{t('family.or')}</span>
               <label className="btn-file">
-                {t('family.chooseFile')}
+                <Upload size={16} />
+                <span>{t('family.chooseFile')}</span>
                 <input type="file" accept="audio/*" onChange={handleFileInput} disabled={uploading} />
               </label>
               {uploading && <p className="status">{t('family.uploading')}</p>}
@@ -224,15 +221,17 @@ export default function FamilyDashboard() {
                       )}
                     </div>
                     <div className="recording-actions">
-                      <button className="btn-toggle" onClick={() => toggleComments(r.id)}>
+                      <button className="btn-icon-text btn-toggle" onClick={() => toggleComments(r.id)}>
                         {activeId === r.id
-                          ? t('teacher.close')
+                          ? <><ChevronUp size={15} /><span>{t('teacher.close')}</span></>
                           : r.commentCount
-                            ? t('family.comments', r.commentCount)
-                            : t('teacher.open')}
+                            ? <><ChevronDown size={15} /><span>{t('family.comments', r.commentCount)}</span></>
+                            : <><ChevronDown size={15} /><span>{t('teacher.open')}</span></>}
                       </button>
                       {isOwn(r) && (
-                        <button className="btn-delete" onClick={() => handleDelete(r.id)}>{t('common.delete')}</button>
+                        <button className="btn-icon btn-delete" onClick={() => handleDelete(r.id)} title={t('common.delete')}>
+                          <Trash2 size={15} />
+                        </button>
                       )}
                     </div>
                   </div>
@@ -240,7 +239,6 @@ export default function FamilyDashboard() {
                   {activeId === r.id && (
                     <div className="recording-detail">
                       <AuthAudio id={r.id} className="audio-player" />
-
                       <div className="comments-section">
                         <h3>{t('teacher.comments')}</h3>
                         {(comments[r.id] ?? []).length === 0 ? (
@@ -264,10 +262,12 @@ export default function FamilyDashboard() {
                             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(r.id) } }}
                           />
                           <button
+                            className="btn-icon btn-send"
                             onClick={() => submitComment(r.id)}
                             disabled={submitting || !(newComment[r.id] ?? '').trim()}
+                            title={t('common.send')}
                           >
-                            {submitting ? t('common.sending') : t('common.send')}
+                            <Send size={16} />
                           </button>
                         </div>
                       </div>

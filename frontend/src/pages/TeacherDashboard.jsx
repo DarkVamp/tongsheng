@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Trash2, ChevronDown, ChevronUp, LogOut, Send, UserPlus, Copy, X, Search } from 'lucide-react'
 import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment } from '../api/recordings'
 import { getFamilies, getInvitations, createInvitation, deleteInvitation } from '../api/invitations'
 import { logout, updateLocale } from '../api/auth'
@@ -46,7 +47,10 @@ function InviteModal({ families, onClose, onCreated, t }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2>{t('teacher.inviteTitle')}</h2>
+        <div className="modal-header">
+          <h2>{t('teacher.inviteTitle')}</h2>
+          <button className="btn-icon btn-ghost" onClick={onClose}><X size={18} /></button>
+        </div>
 
         {created ? (
           <div className="invite-success">
@@ -58,7 +62,8 @@ function InviteModal({ families, onClose, onCreated, t }) {
                 onFocus={e => e.target.select()}
               />
               <button onClick={() => navigator.clipboard?.writeText(`${baseUrl}/register?token=${created.token}`)}>
-                {t('teacher.copyLink')}
+                <Copy size={15} />
+                <span>{t('teacher.copyLink')}</span>
               </button>
             </div>
             <p className="invite-expires">{t('teacher.inviteExpires', new Date(created.expiresAt).toLocaleDateString())}</p>
@@ -68,13 +73,7 @@ function InviteModal({ families, onClose, onCreated, t }) {
           <form onSubmit={handleSubmit}>
             <label>
               {t('teacher.inviteEmail')}
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                autoFocus
-              />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
             </label>
             <label>
               {t('teacher.inviteRole')}
@@ -211,16 +210,19 @@ export default function TeacherDashboard() {
             <button className={locale === 'zh' ? 'active' : ''} onClick={() => switchLocale('zh')}>中文</button>
             <button className={locale === 'de' ? 'active' : ''} onClick={() => switchLocale('de')}>DE</button>
           </div>
-          <span>{user?.name}</span>
-          <button className="btn-ghost" onClick={handleLogout}>{t('common.logout')}</button>
+          <span className="user-name">{user?.name}</span>
+          <button className="btn-icon-text btn-ghost" onClick={handleLogout} title={t('common.logout')}>
+            <LogOut size={16} />
+            <span>{t('common.logout')}</span>
+          </button>
         </div>
       </header>
 
       <main className="dashboard-main">
-        {/* Einladungsbereich */}
         <div className="invite-bar">
-          <button className="btn-primary" onClick={() => setShowInvite(true)}>
-            {t('teacher.inviteButton')}
+          <button className="btn-icon-text btn-primary" onClick={() => setShowInvite(true)}>
+            <UserPlus size={16} />
+            <span>{t('teacher.inviteButton')}</span>
           </button>
           {invitations.length > 0 && (
             <button className="btn-ghost" onClick={() => setShowInvitations(v => !v)}>
@@ -237,7 +239,9 @@ export default function TeacherDashboard() {
                 <li key={inv.id} className="invitation-item">
                   <span className="inv-email">{inv.email}</span>
                   <span className="inv-role">{inv.role === 'family_member' ? t('teacher.roleFamilyMember') : t('teacher.roleFamily')}</span>
-                  <button className="btn-delete" onClick={() => handleDeleteInvitation(inv.id)}>{t('common.delete')}</button>
+                  <button className="btn-icon btn-delete" onClick={() => handleDeleteInvitation(inv.id)} title={t('common.delete')}>
+                    <Trash2 size={14} />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -247,6 +251,7 @@ export default function TeacherDashboard() {
         {deleteError && <p className="error">{deleteError}</p>}
 
         <div className="filter-bar">
+          <Search size={16} className="filter-icon" />
           <input
             type="search"
             placeholder={t('teacher.filterPlaceholder')}
@@ -272,21 +277,22 @@ export default function TeacherDashboard() {
                       )}
                     </div>
                     <div className="recording-actions">
-                      <button className="btn-toggle" onClick={() => toggleRecording(r.id)}>
+                      <button className="btn-icon-text btn-toggle" onClick={() => toggleRecording(r.id)}>
                         {activeId === r.id
-                          ? t('teacher.close')
+                          ? <><ChevronUp size={15} /><span>{t('teacher.close')}</span></>
                           : r.commentCount
-                            ? t('teacher.openWithComments', r.commentCount)
-                            : t('teacher.open')}
+                            ? <><ChevronDown size={15} /><span>{t('teacher.openWithComments', r.commentCount)}</span></>
+                            : <><ChevronDown size={15} /><span>{t('teacher.open')}</span></>}
                       </button>
-                      <button className="btn-delete" onClick={() => handleDelete(r.id)}>{t('common.delete')}</button>
+                      <button className="btn-icon btn-delete" onClick={() => handleDelete(r.id)} title={t('common.delete')}>
+                        <Trash2 size={15} />
+                      </button>
                     </div>
                   </div>
 
                   {activeId === r.id && (
                     <div className="recording-detail">
                       <AuthAudio id={r.id} className="audio-player" />
-
                       <div className="comments-section">
                         <h3>{t('teacher.comments')}</h3>
                         {(comments[r.id] ?? []).length === 0 ? (
@@ -309,8 +315,13 @@ export default function TeacherDashboard() {
                             onChange={e => setNewComment(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(r.id) } }}
                           />
-                          <button onClick={() => submitComment(r.id)} disabled={submitting || !newComment.trim()}>
-                            {submitting ? t('common.sending') : t('common.send')}
+                          <button
+                            className="btn-icon btn-send"
+                            onClick={() => submitComment(r.id)}
+                            disabled={submitting || !newComment.trim()}
+                            title={t('common.send')}
+                          >
+                            <Send size={16} />
                           </button>
                         </div>
                       </div>
