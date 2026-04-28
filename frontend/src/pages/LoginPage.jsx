@@ -47,8 +47,8 @@ export default function LoginPage() {
           </button>
         </form>
         <div className="locale-switcher">
-          <button className={locale === 'zh' ? 'active' : ''} onClick={() => setLocale('zh')}>中文</button>
-          <button className={locale === 'de' ? 'active' : ''} onClick={() => setLocale('de')}>DE</button>
+          <button className={locale === 'zh' ? 'active' : ''} onClick={() => setLocale('zh')} title="中文">🇨🇳</button>
+          <button className={locale === 'de' ? 'active' : ''} onClick={() => setLocale('de')} title="Deutsch">🇩🇪</button>
         </div>
       </div>
       <p className="login-copyright">
