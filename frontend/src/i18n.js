@@ -82,6 +82,10 @@ const translations = {
     'teacher.absent': 'Abwesend',
     'teacher.confirmDeleteLesson': 'Unterrichtsstunde wirklich löschen?',
     'teacher.lessonCount': (p, t) => `${p} / ${t}`,
+    'teacher.luckyWheel': 'Glücksrad',
+    'teacher.spin': 'Drehen!',
+    'teacher.spinAgain': 'Nochmal drehen',
+    'teacher.noPresentStudents': 'Keine Schüler anwesend.',
 
     // Einladungen
     'teacher.inviteButton': 'Einladen',
@@ -207,6 +211,10 @@ const translations = {
     'teacher.absent': '缺席',
     'teacher.confirmDeleteLesson': '确定删除此课程？',
     'teacher.lessonCount': (p, t) => `${p} / ${t}`,
+    'teacher.luckyWheel': '幸运转盘',
+    'teacher.spin': '转动！',
+    'teacher.spinAgain': '再转一次',
+    'teacher.noPresentStudents': '没有学生在场。',
 
     // 邀请
     'teacher.inviteButton': '邀请',

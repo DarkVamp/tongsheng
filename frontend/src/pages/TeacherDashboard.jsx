@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Trash2, LogOut, Send, UserPlus, Copy, X, Search } from 'lucide-react'
 import Icon from '../components/Icon'
+import LuckyWheel from '../components/LuckyWheel'
 import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment } from '../api/recordings'
 import { getInvitations, createInvitation, deleteInvitation } from '../api/invitations'
 import { getFamilies, createFamily, deleteFamily, getFamilyMembers, createMember, deleteMember } from '../api/families'
@@ -519,6 +520,7 @@ function LessonsTab({ t, dateLocale }) {
   const [attendanceMap, setAttendanceMap] = useState({})
   const [attendanceError, setAttendanceError] = useState({})
   const [listError, setListError] = useState('')
+  const [wheelLessonId, setWheelLessonId] = useState(null)
 
   useEffect(() => {
     getLessons()
@@ -640,6 +642,15 @@ function LessonsTab({ t, dateLocale }) {
                   <span className="lesson-count">{t('teacher.lessonCount', presentCount, totalStudents)}</span>
                 )}
                 <div className="lesson-actions">
+                  {isActive && att && (
+                    <button
+                      className="btn-icon-text btn-ghost btn-wheel"
+                      onClick={() => setWheelLessonId(l.id)}
+                      title={t('teacher.luckyWheel')}
+                    >
+                      🎡
+                    </button>
+                  )}
                   <button className="btn-icon btn-toggle" onClick={() => toggleLesson(l.id)} title={isActive ? t('teacher.close') : t('teacher.attendance')}>
                     <Icon name="chevron-down" size={16} style={isActive ? { transform: 'rotate(180deg)' } : {}} />
                   </button>
@@ -682,6 +693,14 @@ function LessonsTab({ t, dateLocale }) {
           )
         })}
       </ul>
+
+      {wheelLessonId && attendanceMap[wheelLessonId] && (
+        <LuckyWheel
+          students={attendanceMap[wheelLessonId].students.filter(s => s.present)}
+          onClose={() => setWheelLessonId(null)}
+          t={t}
+        />
+      )}
     </>
   )
 }
@@ -719,11 +738,11 @@ export default function TeacherDashboard() {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <h1>同声 <span className="role-badge">{t('teacher.badge')}</span></h1>
+        <h1>同声 <span className="role-badge"><Icon name="person" size={13} /></span></h1>
         <div className="header-right">
           <div className="locale-switcher">
-            <button className={locale === 'zh' ? 'active' : ''} onClick={() => switchLocale('zh')}>中文</button>
-            <button className={locale === 'de' ? 'active' : ''} onClick={() => switchLocale('de')}>DE</button>
+            <button className={locale === 'zh' ? 'active' : ''} onClick={() => switchLocale('zh')} title="中文">🇨🇳</button>
+            <button className={locale === 'de' ? 'active' : ''} onClick={() => switchLocale('de')} title="Deutsch">🇩🇪</button>
           </div>
           <span className="user-name">{user?.name}</span>
           <button className="btn-icon-text btn-ghost" onClick={handleLogout} title={t('common.logout')}>
