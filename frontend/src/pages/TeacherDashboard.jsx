@@ -418,9 +418,15 @@ function LessonsTab({ t, dateLocale }) {
   const [activeLessonId, setActiveLessonId] = useState(null)
   const [attendanceMap, setAttendanceMap] = useState({})
   const [attendanceError, setAttendanceError] = useState({})
+  const [listError, setListError] = useState('')
 
   useEffect(() => {
-    getLessons().then(data => { setLessons(data); setLoaded(true) })
+    getLessons()
+      .then(data => { setLessons(data); setLoaded(true) })
+      .catch(err => {
+        setListError(err.response?.data?.error ?? err.message ?? 'Fehler beim Laden')
+        setLoaded(true)
+      })
   }, [])
 
   const handleCreate = async (e) => {
@@ -512,7 +518,8 @@ function LessonsTab({ t, dateLocale }) {
       </form>
 
       {!loaded && <p className="empty">{t('common.loading')}</p>}
-      {loaded && lessons.length === 0 && <p className="empty">{t('teacher.noLessons')}</p>}
+      {listError && <p className="error">{listError}</p>}
+      {loaded && !listError && lessons.length === 0 && <p className="empty">{t('teacher.noLessons')}</p>}
 
       <ul className="lesson-list">
         {lessons.map(l => {

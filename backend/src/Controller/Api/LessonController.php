@@ -29,13 +29,17 @@ class LessonController extends AbstractController
             return $this->json(['error' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
         }
 
-        $lessons = $repo->findBy([], ['date' => 'DESC']);
-        $totalStudents = count($userRepo->findBy(['isStudent' => true]));
+        try {
+            $lessons = $repo->findBy([], ['date' => 'DESC']);
+            $totalStudents = count($userRepo->findBy(['isStudent' => true]));
 
-        return $this->json(array_map(function (Lesson $l) use ($attendanceRepo, $totalStudents) {
-            $presentCount = $attendanceRepo->count(['lesson' => $l, 'present' => true]);
-            return $this->serializeLesson($l, $presentCount, $totalStudents);
-        }, $lessons));
+            return $this->json(array_map(function (Lesson $l) use ($attendanceRepo, $totalStudents) {
+                $presentCount = $attendanceRepo->count(['lesson' => $l, 'present' => true]);
+                return $this->serializeLesson($l, $presentCount, $totalStudents);
+            }, $lessons));
+        } catch (\Throwable $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
     // ── Neue Unterrichtsstunde anlegen ───────────────────────────────────────
