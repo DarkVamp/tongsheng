@@ -57,6 +57,14 @@ const translations = {
     'teacher.deleteFamily': 'Familie löschen',
     'teacher.confirmDeleteFamily': (name) => `Familie „${name}" und alle zugehörigen Mitglieder wirklich löschen?`,
     'teacher.noMembers': 'Keine Mitglieder.',
+    'teacher.addMember': 'Mitglied anlegen',
+    'teacher.addMemberTitle': (family) => `Mitglied in „${family}" anlegen`,
+    'teacher.memberName': 'Name',
+    'teacher.memberEmail': 'E-Mail',
+    'teacher.memberPassword': 'Passwort',
+    'teacher.addMemberError': 'Anlegen fehlgeschlagen.',
+    'teacher.deleteMember': 'Mitglied löschen',
+    'teacher.confirmDeleteMember': (name) => `Mitglied „${name}" wirklich löschen?`,
 
     // Schüler-Tab
     'teacher.markStudent': 'Als Schüler markieren',
@@ -174,6 +182,14 @@ const translations = {
     'teacher.deleteFamily': '删除家庭',
     'teacher.confirmDeleteFamily': (name) => `确定删除家庭「${name}」及其所有成员？`,
     'teacher.noMembers': '暂无成员。',
+    'teacher.addMember': '添加成员',
+    'teacher.addMemberTitle': (family) => `在「${family}」中添加成员`,
+    'teacher.memberName': '姓名',
+    'teacher.memberEmail': '邮箱',
+    'teacher.memberPassword': '密码',
+    'teacher.addMemberError': '添加失败。',
+    'teacher.deleteMember': '删除成员',
+    'teacher.confirmDeleteMember': (name) => `确定删除成员「${name}」？`,
 
     // 学生标签页
     'teacher.markStudent': '标为学生',

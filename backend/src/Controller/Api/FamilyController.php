@@ -5,12 +5,14 @@ namespace App\Controller\Api;
 use App\Entity\Family;
 use App\Entity\User;
 use App\Repository\FamilyRepository;
+use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/families')]
@@ -95,6 +97,98 @@ class FamilyController extends AbstractController
         }
 
         $em->remove($family);
+        $em->flush();
+
+        return $this->json(null, Response::HTTP_NO_CONTENT);
+    }
+
+    // ── Mitglied direkt anlegen ──────────────────────────────────────────────
+
+    #[Route('/{id}/members', methods: ['POST'])]
+    public function createMember(
+        int $id,
+        Request $request,
+        FamilyRepository $familyRepo,
+        UserRepository $userRepo,
+        EntityManagerInterface $em,
+        UserPasswordHasherInterface $hasher
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+        if (!$user->isTeacher()) {
+            return $this->json(['error' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $family = $familyRepo->find($id);
+        if (!$family) {
+            return $this->json(['error' => 'Familie nicht gefunden.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $data     = json_decode($request->getContent(), true);
+        $name     = trim($data['name'] ?? '');
+        $email    = trim($data['email'] ?? '');
+        $password = $data['password'] ?? '';
+
+        if ($name === '') {
+            return $this->json(['error' => 'Name darf nicht leer sein.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->json(['error' => 'Ungültige E-Mail-Adresse.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        if (strlen($password) < 6) {
+            return $this->json(['error' => 'Passwort muss mindestens 6 Zeichen haben.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        if ($userRepo->findOneBy(['email' => $email])) {
+            return $this->json(['error' => 'Diese E-Mail ist bereits registriert.'], Response::HTTP_CONFLICT);
+        }
+
+        $newUser = new User();
+        $newUser->setEmail($email)
+            ->setFamilyName($name)
+            ->setRole('family_member')
+            ->setFamily($family)
+            ->setPassword($hasher->hashPassword($newUser, $password))
+            ->setApiToken(bin2hex(random_bytes(32)));
+
+        $em->persist($newUser);
+        $em->flush();
+
+        return $this->json([
+            'id'        => $newUser->getId(),
+            'name'      => $newUser->getFamilyName(),
+            'isStudent' => $newUser->isStudent(),
+        ], Response::HTTP_CREATED);
+    }
+
+    // ── Mitglied löschen ─────────────────────────────────────────────────────
+
+    #[Route('/members/{id}/delete', methods: ['POST'])]
+    public function deleteMember(
+        int $id,
+        UserRepository $userRepo,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+        if (!$user->isTeacher()) {
+            return $this->json(['error' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $member = $userRepo->find($id);
+        if (!$member || $member->isTeacher()) {
+            return $this->json(['error' => 'Not found.'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Audiodateien löschen
+        $userDir = $this->recordingsDir . '/' . $member->getId();
+        if (is_dir($userDir)) {
+            foreach (array_diff(scandir($userDir), ['.', '..']) as $file) {
+                @unlink($userDir . '/' . $file);
+            }
+            @rmdir($userDir);
+        }
+
+        $em->remove($member);
         $em->flush();
 
         return $this->json(null, Response::HTTP_NO_CONTENT);

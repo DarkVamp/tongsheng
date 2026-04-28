@@ -3,7 +3,7 @@ import { Trash2, LogOut, Send, UserPlus, Copy, X, Search } from 'lucide-react'
 import Icon from '../components/Icon'
 import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment } from '../api/recordings'
 import { getInvitations, createInvitation, deleteInvitation } from '../api/invitations'
-import { getFamilies, createFamily, deleteFamily, getFamilyMembers } from '../api/families'
+import { getFamilies, createFamily, deleteFamily, getFamilyMembers, createMember, deleteMember } from '../api/families'
 import { toggleStudent, getLessons, createLesson, deleteLesson, getLessonAttendance, setAttendance } from '../api/lessons'
 import { logout, updateLocale } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
@@ -300,6 +300,63 @@ function RecordingsTab({ t, dateLocale, families, invitations, setInvitations })
   )
 }
 
+// ── Add Member Modal ───────────────────────────────────────────────────────
+
+function AddMemberModal({ family, onClose, onCreated, t }) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setSubmitting(true)
+    try {
+      const member = await createMember(family.id, { name, email, password })
+      onCreated(member)
+      onClose()
+    } catch (err) {
+      setError(err.response?.data?.error ?? t('teacher.addMemberError'))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>{t('teacher.addMemberTitle', family.name)}</h2>
+          <button className="btn-icon btn-ghost" onClick={onClose}><X size={18} /></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <label>
+            {t('teacher.memberName')}
+            <input type="text" value={name} onChange={e => setName(e.target.value)} required autoFocus />
+          </label>
+          <label>
+            {t('teacher.memberEmail')}
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          </label>
+          <label>
+            {t('teacher.memberPassword')}
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
+          </label>
+          {error && <p className="error">{error}</p>}
+          <div className="modal-actions">
+            <button type="submit" disabled={submitting}>
+              {submitting ? t('common.sending') : t('teacher.addMember')}
+            </button>
+            <button type="button" className="btn-ghost" onClick={onClose}>{t('common.cancel')}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ── Schüler Tab ────────────────────────────────────────────────────────────
 
 function StudentsTab({ t, onFamiliesChanged }) {
@@ -307,6 +364,7 @@ function StudentsTab({ t, onFamiliesChanged }) {
   const [loaded, setLoaded] = useState(false)
   const [newFamilyName, setNewFamilyName] = useState('')
   const [creating, setCreating] = useState(false)
+  const [addMemberFamily, setAddMemberFamily] = useState(null)
 
   useEffect(() => {
     getFamilyMembers().then(data => { setFamilyGroups(data); setLoaded(true) })
@@ -345,6 +403,25 @@ function StudentsTab({ t, onFamiliesChanged }) {
     } catch {}
   }
 
+  const handleDeleteMember = async (userId, memberName) => {
+    if (!confirm(t('teacher.confirmDeleteMember', memberName))) return
+    try {
+      await deleteMember(userId)
+      setFamilyGroups(prev => prev.map(g => ({
+        ...g,
+        members: g.members.filter(m => m.id !== userId),
+      })))
+    } catch {}
+  }
+
+  const handleMemberCreated = (familyId, member) => {
+    setFamilyGroups(prev => prev.map(g =>
+      g.familyId === familyId
+        ? { ...g, members: [...g.members, member].sort((a, b) => a.name.localeCompare(b.name)) }
+        : g
+    ))
+  }
+
   return (
     <>
       <form className="family-create-form" onSubmit={handleCreateFamily}>
@@ -367,6 +444,13 @@ function StudentsTab({ t, onFamiliesChanged }) {
         <section key={g.familyId} className="students-section">
           <div className="students-section-header">
             <h2>{g.familyName}</h2>
+            <button
+              className="btn-icon-text btn-ghost"
+              onClick={() => setAddMemberFamily({ id: g.familyId, name: g.familyName })}
+              title={t('teacher.addMember')}
+            >
+              <UserPlus size={14} />
+            </button>
             <button
               className="btn-icon btn-delete"
               onClick={() => handleDeleteFamily(g.familyId, g.familyName)}
@@ -397,12 +481,28 @@ function StudentsTab({ t, onFamiliesChanged }) {
                       ? <Icon name="close" size={13} style={{ display: 'inline', verticalAlign: 'middle' }} />
                       : <Icon name="check" size={13} style={{ display: 'inline', verticalAlign: 'middle' }} />}
                   </button>
+                  <button
+                    className="btn-icon btn-delete"
+                    onClick={() => handleDeleteMember(m.id, m.name)}
+                    title={t('teacher.deleteMember')}
+                  >
+                    <Trash2 size={13} />
+                  </button>
                 </li>
               ))}
             </ul>
           )}
         </section>
       ))}
+
+      {addMemberFamily && (
+        <AddMemberModal
+          family={addMemberFamily}
+          t={t}
+          onClose={() => setAddMemberFamily(null)}
+          onCreated={(member) => handleMemberCreated(addMemberFamily.id, member)}
+        />
+      )}
     </>
   )
 }

@@ -7,3 +7,7 @@ export const createFamily = (name) => api.post('/families', { name }).then(r => 
 export const deleteFamily = (id) => api.post(`/families/${id}/delete`)
 
 export const getFamilyMembers = () => api.get('/families/members').then(r => r.data)
+
+export const createMember = (familyId, data) => api.post(`/families/${familyId}/members`, data).then(r => r.data)
+
+export const deleteMember = (userId) => api.post(`/families/members/${userId}/delete`)
