@@ -27,7 +27,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 20)]
     private string $role = 'family_member'; // 'family_member' | 'teacher'
 
-    #[ORM\ManyToOne(targetEntity: Family::class, inversedBy: 'members')]
+    #[ORM\ManyToOne(targetEntity: Family::class, inversedBy: 'members', fetch: 'EAGER')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?Family $family = null;
 

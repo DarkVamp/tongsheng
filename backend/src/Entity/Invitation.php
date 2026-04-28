@@ -20,7 +20,7 @@ class Invitation
     #[ORM\Column(length: 20)]
     private string $role = 'family_member';
 
-    #[ORM\ManyToOne(targetEntity: Family::class)]
+    #[ORM\ManyToOne(targetEntity: Family::class, fetch: 'EAGER')]
     #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?Family $family = null;
 
