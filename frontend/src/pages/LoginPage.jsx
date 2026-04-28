@@ -50,10 +50,10 @@ export default function LoginPage() {
           <button className={locale === 'zh' ? 'active' : ''} onClick={() => setLocale('zh')} title="中文">🇨🇳</button>
           <button className={locale === 'de' ? 'active' : ''} onClick={() => setLocale('de')} title="Deutsch">🇩🇪</button>
         </div>
+        <p className="login-copyright">
+          &copy; {new Date().getFullYear()} <a href="https://ralf-kraus.com/" target="_blank" rel="noopener noreferrer">Ralf Kraus</a>
+        </p>
       </div>
-      <p className="login-copyright">
-        &copy; {new Date().getFullYear()} <a href="https://ralf-kraus.com/" target="_blank" rel="noopener noreferrer">Ralf Kraus</a>
-      </p>
     </div>
   )
 }
