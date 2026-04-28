@@ -13,9 +13,9 @@ export function LocaleProvider({ children }) {
     setLocaleState(l)
   }
 
-  const t = (key, param) => {
+  const t = (key, ...params) => {
     const val = translations[locale]?.[key] ?? translations.de[key] ?? key
-    return typeof val === 'function' ? val(param) : val
+    return typeof val === 'function' ? val(...params) : val
   }
 
   return (
