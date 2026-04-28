@@ -23,7 +23,7 @@ class Lesson
     private ?string $title = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'created_by', nullable: false, onDelete: 'CASCADE')]
     private User $createdBy;
 
     #[ORM\Column]
