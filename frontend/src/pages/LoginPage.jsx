@@ -51,6 +51,9 @@ export default function LoginPage() {
           <button className={locale === 'de' ? 'active' : ''} onClick={() => setLocale('de')}>DE</button>
         </div>
       </div>
+      <p className="login-copyright">
+        &copy; {new Date().getFullYear()} <a href="https://ralf-kraus.com/" target="_blank" rel="noopener noreferrer">Ralf Kraus</a>
+      </p>
     </div>
   )
 }
