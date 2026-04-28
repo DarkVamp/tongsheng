@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Trash2, LogOut, Send, UserPlus, Copy, X, Search } from 'lucide-react'
+import { Trash2, LogOut, Send, UserPlus, Copy, X, Search, GraduationCap } from 'lucide-react'
 import Icon from '../components/Icon'
 import LuckyWheel from '../components/LuckyWheel'
 import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment } from '../api/recordings'
@@ -738,7 +738,7 @@ export default function TeacherDashboard() {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <h1>同声 <span className="role-badge"><Icon name="person" size={13} /></span></h1>
+        <h1>同声 <span className="role-badge"><GraduationCap size={13} /></span></h1>
         <div className="header-right">
           <div className="locale-switcher">
             <button className={locale === 'zh' ? 'active' : ''} onClick={() => switchLocale('zh')} title="中文">🇨🇳</button>
