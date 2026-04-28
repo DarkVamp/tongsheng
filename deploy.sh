@@ -24,9 +24,8 @@ set ssl:verify-certificate false
 set ftp:passive-mode true
 
 # Symfony Prod-Cache leeren (damit neue Routes/Container aktiv werden)
--rm -r /backend/var/cache/prod
--mkdir /backend/var/cache
--mkdir /backend/var/cache/prod
+glob rm -r /backend/var/cache/prod
+mkdir -p /backend/var/cache/prod
 
 # React-Build hochladen (Web-Root, backend/ vom Delete ausschließen)
 mirror --reverse --delete --verbose \
@@ -48,11 +47,6 @@ mirror --reverse --verbose \
 mirror --reverse --verbose \
   backend/vendor/ \
   /backend/vendor/
-
-# var-Verzeichnisse anlegen (- ignoriert Fehler falls bereits vorhanden)
--mkdir /backend/var/cache
--mkdir /backend/var/log
--mkdir /backend/var/sessions
 
 bye
 EOF
