@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import fixWebmDuration from 'fix-webm-duration'
 import { Mic, StopCircle, Upload, Trash2, LogOut, Send } from 'lucide-react'
 import Icon from '../components/Icon'
-import { getRecordings, uploadRecording, deleteRecording, fetchAudioBlob, getComments, addComment } from '../api/recordings'
+import { getRecordings, uploadRecording, deleteRecording, fetchAudioBlob, getComments, addComment, reactToComment } from '../api/recordings'
 import { logout, updateLocale } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
 import { useLocale } from '../context/LocaleContext'
@@ -153,6 +153,18 @@ export default function FamilyDashboard() {
     }
   }
 
+  const handleReact = async (commentId, type, recordingId) => {
+    try {
+      const updatedReactions = await reactToComment(commentId, type)
+      setComments(prev => ({
+        ...prev,
+        [recordingId]: (prev[recordingId] ?? []).map(c =>
+          c.id === commentId ? { ...c, reactions: updatedReactions } : c
+        ),
+      }))
+    } catch {}
+  }
+
   const isOwn = (r) => {
     if (r.uploaderId === undefined || r.uploaderId === null) return true
     return r.uploaderId === user?.id
@@ -245,8 +257,28 @@ export default function FamilyDashboard() {
                           <ul className="comment-list">
                             {(comments[r.id] ?? []).map(c => (
                               <li key={c.id} className="comment">
+                                <div className="comment-header">
+                                  {c.authorName && (
+                                    <span className={`comment-author${c.authorRole === 'teacher' ? ' comment-author-teacher' : ''}`}>
+                                      {c.authorName}
+                                      {c.authorRole === 'teacher' && <span className="comment-role-badge">{t('comment.teacherBadge')}</span>}
+                                    </span>
+                                  )}
+                                  <span className="comment-date">{new Date(c.createdAt).toLocaleDateString(dateLocale)}</span>
+                                </div>
                                 <p>{c.content}</p>
-                                <span className="comment-date">{new Date(c.createdAt).toLocaleDateString(dateLocale)}</span>
+                                <div className="comment-reactions">
+                                  {[['thumbs_up', '👍'], ['heart', '❤️'], ['thumbs_down', '👎']].map(([type, emoji]) => (
+                                    <button
+                                      key={type}
+                                      className={`btn-reaction${c.reactions?.mine === type ? ' active' : ''}`}
+                                      onClick={() => handleReact(c.id, type, r.id)}
+                                      title={c.reactions?.users?.[type]?.length > 0 ? c.reactions.users[type].join(', ') : t(`comment.reaction.${type}`)}
+                                    >
+                                      {emoji}{c.reactions?.[type] > 0 && <span className="reaction-count">{c.reactions[type]}</span>}
+                                    </button>
+                                  ))}
+                                </div>
                               </li>
                             ))}
                           </ul>

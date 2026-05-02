@@ -23,7 +23,7 @@ class Recording
     #[ORM\Column(length: 255)]
     private string $filename;
 
-    #[ORM\Column(length: 10)]
+    #[ORM\Column(length: 20)]
     private string $mimeType;
 
     #[ORM\Column]

@@ -92,6 +92,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         if ($this->isTeacher()) return true;
         $myFamily = $this->family;
         $theirFamily = $recording->getUser()->getFamily();
-        return $myFamily !== null && $theirFamily !== null && $myFamily->getId() === $theirFamily->getId();
+        if ($myFamily === null || $theirFamily === null) return false;
+        if ($myFamily === $theirFamily) return true;
+        $myId = $myFamily->getId();
+        return $myId !== null && $myId === $theirFamily->getId();
     }
 }

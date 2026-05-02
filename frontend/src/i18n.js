@@ -124,6 +124,12 @@ const translations = {
     'register.passwordMismatch': 'Passwörter stimmen nicht überein.',
     'register.failed': 'Registrierung fehlgeschlagen.',
 
+    // Kommentare
+    'comment.teacherBadge': 'Lehrerin',
+    'comment.reaction.thumbs_up': 'Daumen hoch',
+    'comment.reaction.heart': 'Herz',
+    'comment.reaction.thumbs_down': 'Daumen runter',
+
     // Dates
     'date.locale': 'de-DE',
   },
@@ -252,6 +258,12 @@ const translations = {
     'register.passwordTooShort': '密码至少需要6个字符。',
     'register.passwordMismatch': '两次密码不一致。',
     'register.failed': '注册失败。',
+
+    // 评论
+    'comment.teacherBadge': '老师',
+    'comment.reaction.thumbs_up': '点赞',
+    'comment.reaction.heart': '爱心',
+    'comment.reaction.thumbs_down': '踩',
 
     // Dates
     'date.locale': 'zh-CN',

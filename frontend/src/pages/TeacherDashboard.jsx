@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Trash2, LogOut, Send, UserPlus, Copy, X, Search, GraduationCap } from 'lucide-react'
 import Icon from '../components/Icon'
 import LuckyWheel from '../components/LuckyWheel'
-import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment } from '../api/recordings'
+import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment, reactToComment } from '../api/recordings'
 import { getInvitations, createInvitation, deleteInvitation } from '../api/invitations'
 import { getFamilies, createFamily, deleteFamily, getFamilyMembers, createMember, deleteMember } from '../api/families'
 import { toggleStudent, getLessons, createLesson, deleteLesson, getLessonAttendance, setAttendance } from '../api/lessons'
@@ -156,6 +156,18 @@ function RecordingsTab({ t, dateLocale, families, invitations, setInvitations })
     }
   }
 
+  const handleReact = async (commentId, type, recordingId) => {
+    try {
+      const updatedReactions = await reactToComment(commentId, type)
+      setComments(prev => ({
+        ...prev,
+        [recordingId]: (prev[recordingId] ?? []).map(c =>
+          c.id === commentId ? { ...c, reactions: updatedReactions } : c
+        ),
+      }))
+    } catch {}
+  }
+
   const handleDeleteInvitation = async (id) => {
     try {
       await deleteInvitation(id)
@@ -255,8 +267,28 @@ function RecordingsTab({ t, dateLocale, families, invitations, setInvitations })
                         <ul className="comment-list">
                           {(comments[r.id] ?? []).map(c => (
                             <li key={c.id} className="comment">
+                              <div className="comment-header">
+                                {c.authorName && (
+                                  <span className={`comment-author${c.authorRole === 'teacher' ? ' comment-author-teacher' : ''}`}>
+                                    {c.authorName}
+                                    {c.authorRole === 'teacher' && <span className="comment-role-badge">{t('comment.teacherBadge')}</span>}
+                                  </span>
+                                )}
+                                <span className="comment-date">{new Date(c.createdAt).toLocaleDateString(dateLocale)}</span>
+                              </div>
                               <p>{c.content}</p>
-                              <span className="comment-date">{new Date(c.createdAt).toLocaleDateString(dateLocale)}</span>
+                              <div className="comment-reactions">
+                                {[['thumbs_up', '👍'], ['heart', '❤️'], ['thumbs_down', '👎']].map(([type, emoji]) => (
+                                  <button
+                                    key={type}
+                                    className={`btn-reaction${c.reactions?.mine === type ? ' active' : ''}`}
+                                    onClick={() => handleReact(c.id, type, r.id)}
+                                    title={c.reactions?.users?.[type]?.length > 0 ? c.reactions.users[type].join(', ') : t(`comment.reaction.${type}`)}
+                                  >
+                                    {emoji}{c.reactions?.[type] > 0 && <span className="reaction-count">{c.reactions[type]}</span>}
+                                  </button>
+                                ))}
+                              </div>
                             </li>
                           ))}
                         </ul>

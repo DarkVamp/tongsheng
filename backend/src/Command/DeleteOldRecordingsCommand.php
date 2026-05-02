@@ -16,7 +16,7 @@ class DeleteOldRecordingsCommand extends Command
     public function __construct(
         private RecordingRepository $recordingRepository,
         private EntityManagerInterface $em,
-        #[Autowire('%kernel.project_dir%/var/recordings')]
+        #[Autowire('%app.recordings_dir%')]
         private string $recordingsDir
     ) {
         parent::__construct();

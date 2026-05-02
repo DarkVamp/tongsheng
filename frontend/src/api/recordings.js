@@ -18,3 +18,6 @@ export const getComments = (recordingId) =>
 
 export const addComment = (recordingId, content) =>
   api.post(`/recordings/${recordingId}/comments`, { content }).then((r) => r.data)
+
+export const reactToComment = (commentId, type) =>
+  api.post(`/comments/${commentId}/react`, { type }).then((r) => r.data)

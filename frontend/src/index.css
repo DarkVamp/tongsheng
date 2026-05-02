@@ -189,8 +189,30 @@ body {
 .comments-section h3 { font-size: .95rem; font-weight: 600; margin-bottom: .5rem; }
 .comment-list { list-style: none; display: flex; flex-direction: column; gap: .5rem; margin-bottom: .75rem; }
 .comment { background: var(--bg); border-radius: 8px; padding: .625rem .875rem; }
+.comment-header { display: flex; align-items: baseline; gap: .5rem; margin-bottom: .2rem; flex-wrap: wrap; }
+.comment-author { font-size: .8rem; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: .3rem; }
+.comment-author-teacher { color: var(--primary); }
+.comment-role-badge { font-size: .65rem; background: var(--primary); color: #fff; border-radius: 4px; padding: 1px 5px; font-weight: 600; line-height: 1.4; }
 .comment p { font-size: .9rem; line-height: 1.4; }
-.comment-date { font-size: .75rem; color: var(--text-muted); margin-top: .25rem; display: block; }
+.comment-date { font-size: .75rem; color: var(--text-muted); display: block; }
+.comment-reactions { display: flex; gap: .3rem; margin-top: .4rem; flex-wrap: wrap; }
+.btn-reaction {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: .15rem .5rem;
+  font-size: .85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  transition: background .15s, border-color .15s;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.btn-reaction:hover { background: var(--bg); border-color: var(--text-muted); color: var(--text); }
+.btn-reaction.active { background: #ede9fe; border-color: var(--primary); color: var(--primary); }
+.reaction-count { font-size: .75rem; font-weight: 700; }
 .comment-form { display: flex; gap: .5rem; }
 .comment-form textarea {
   flex: 1;

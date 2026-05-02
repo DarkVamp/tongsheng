@@ -84,7 +84,7 @@ class RecordingController extends AbstractController
 
         $userDir = $this->recordingsDir . '/' . $user->getId();
         if (!is_dir($userDir)) {
-            if (!mkdir($userDir, 0755, true) && !is_dir($userDir)) {
+            if (!@mkdir($userDir, 0755, true) && !is_dir($userDir)) {
                 return $this->json(['error' => 'Server-Fehler: Aufnahmeverzeichnis konnte nicht erstellt werden.'], Response::HTTP_INTERNAL_SERVER_ERROR);
             }
         }

@@ -30,11 +30,10 @@ class CommentController extends AbstractController
             return $this->json(['error' => 'Access denied.'], Response::HTTP_FORBIDDEN);
         }
 
-        return $this->json(array_map(fn(Comment $c) => [
-            'id'        => $c->getId(),
-            'content'   => $c->getContent(),
-            'createdAt' => $c->getCreatedAt()->format(\DateTimeInterface::ATOM),
-        ], $recording->getComments()->toArray()));
+        return $this->json(array_map(
+            fn(Comment $c) => $this->serializeComment($c, $user),
+            $recording->getComments()->toArray()
+        ));
     }
 
     #[Route('', methods: ['POST'])]
@@ -64,15 +63,36 @@ class CommentController extends AbstractController
         }
 
         $comment = new Comment();
-        $comment->setRecording($recording)->setContent($content);
+        $comment->setRecording($recording)->setContent($content)->setAuthor($user);
 
         $em->persist($comment);
         $em->flush();
 
-        return $this->json([
-            'id'        => $comment->getId(),
-            'content'   => $comment->getContent(),
-            'createdAt' => $comment->getCreatedAt()->format(\DateTimeInterface::ATOM),
-        ], Response::HTTP_CREATED);
+        return $this->json($this->serializeComment($comment, $user), Response::HTTP_CREATED);
+    }
+
+    private function serializeComment(Comment $c, User $currentUser): array
+    {
+        $author = $c->getAuthor();
+        $counts = ['thumbs_up' => 0, 'heart' => 0, 'thumbs_down' => 0];
+        $users  = ['thumbs_up' => [], 'heart' => [], 'thumbs_down' => []];
+        $mine = null;
+        foreach ($c->getReactions() as $r) {
+            $type = $r->getType();
+            $counts[$type]++;
+            $users[$type][] = $r->getUser()->getFamilyName();
+            if ($r->getUser()->getId() === $currentUser->getId()) {
+                $mine = $type;
+            }
+        }
+
+        return [
+            'id'         => $c->getId(),
+            'content'    => $c->getContent(),
+            'createdAt'  => $c->getCreatedAt()->format(\DateTimeInterface::ATOM),
+            'authorName' => $author?->getFamilyName(),
+            'authorRole' => $author?->getRole(),
+            'reactions'  => array_merge($counts, ['mine' => $mine, 'users' => $users]),
+        ];
     }
 }
