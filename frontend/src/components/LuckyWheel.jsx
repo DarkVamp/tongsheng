@@ -88,10 +88,10 @@ export default function LuckyWheel({ students, onClose, t }) {
     setSpinning(true)
     setWinner(null)
 
-    const extraTurns = 8 + Math.floor(Math.random() * 5)
+    const extraTurns = 5 + Math.floor(Math.random() * 3)
     const extraAngle = Math.random() * 2 * Math.PI
     const totalRotation = extraTurns * 2 * Math.PI + extraAngle
-    const duration = 6000 + Math.random() * 2000
+    const duration = 3000 + Math.random() * 1000
     const startRotation = rotationRef.current
     const startTime = performance.now()
 
