@@ -4,7 +4,7 @@ import Icon from '../components/Icon'
 import LuckyWheel from '../components/LuckyWheel'
 import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment, reactToComment } from '../api/recordings'
 import { getInvitations, createInvitation, deleteInvitation } from '../api/invitations'
-import { getFamilies, createFamily, deleteFamily, getFamilyMembers, createMember, deleteMember } from '../api/families'
+import { createFamily, deleteFamily, getFamilyMembers, createMember, deleteMember } from '../api/families'
 import { toggleStudent, getLessons, createLesson, deleteLesson, getLessonAttendance, setAttendance, patchLesson } from '../api/lessons'
 import { getHomeworkAllForLesson, fetchHomeworkImageBlob } from '../api/homework'
 import { logout, updateLocale } from '../api/auth'
@@ -137,7 +137,7 @@ function InviteModal({ families, onClose, onCreated, t }) {
 
 // ── Recordings Tab ─────────────────────────────────────────────────────────
 
-function RecordingsTab({ t, dateLocale, families, invitations, setInvitations }) {
+function RecordingsTab({ t, dateLocale }) {
   const [recordings, setRecordings] = useState([])
   const [filter, setFilter] = useState('')
   const [activeId, setActiveId] = useState(null)
@@ -145,8 +145,6 @@ function RecordingsTab({ t, dateLocale, families, invitations, setInvitations })
   const [newComment, setNewComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
-  const [showInvite, setShowInvite] = useState(false)
-  const [showInvitations, setShowInvitations] = useState(false)
 
   useEffect(() => { getRecordings().then(setRecordings) }, [])
 
@@ -202,13 +200,6 @@ function RecordingsTab({ t, dateLocale, families, invitations, setInvitations })
     } catch {}
   }
 
-  const handleDeleteInvitation = async (id) => {
-    try {
-      await deleteInvitation(id)
-      setInvitations(prev => prev.filter(i => i.id !== id))
-    } catch {}
-  }
-
   const filtered = recordings.filter(r =>
     !filter || r.family?.toLowerCase().includes(filter.toLowerCase())
   )
@@ -222,35 +213,6 @@ function RecordingsTab({ t, dateLocale, families, invitations, setInvitations })
 
   return (
     <>
-      <div className="invite-bar">
-        <button className="btn-icon-text btn-primary" onClick={() => setShowInvite(true)}>
-          <UserPlus size={16} />
-          <span>{t('teacher.inviteButton')}</span>
-        </button>
-        {invitations.length > 0 && (
-          <button className="btn-ghost" onClick={() => setShowInvitations(v => !v)}>
-            {t('teacher.pendingInvitations', invitations.length)}
-          </button>
-        )}
-      </div>
-
-      {showInvitations && invitations.length > 0 && (
-        <section className="invitations-section">
-          <h3>{t('teacher.pendingInvitationsTitle')}</h3>
-          <ul className="invitation-list">
-            {invitations.map(inv => (
-              <li key={inv.id} className="invitation-item">
-                <span className="inv-email">{inv.email}</span>
-                <span className="inv-role">{inv.role === 'family_member' ? t('teacher.roleFamilyMember') : t('teacher.roleFamily')}</span>
-                <button className="btn-icon btn-delete" onClick={() => handleDeleteInvitation(inv.id)} title={t('common.delete')}>
-                  <Trash2 size={14} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
       {deleteError && <p className="error">{deleteError}</p>}
 
       <div className="filter-bar">
@@ -354,15 +316,6 @@ function RecordingsTab({ t, dateLocale, families, invitations, setInvitations })
       ))}
 
       {filtered.length === 0 && <p className="empty">{t('teacher.noRecordings')}</p>}
-
-      {showInvite && (
-        <InviteModal
-          families={families}
-          t={t}
-          onClose={() => setShowInvite(false)}
-          onCreated={(inv) => setInvitations(prev => [inv, ...prev])}
-        />
-      )}
     </>
   )
 }
@@ -426,15 +379,19 @@ function AddMemberModal({ family, onClose, onCreated, t }) {
 
 // ── Schüler Tab ────────────────────────────────────────────────────────────
 
-function StudentsTab({ t, onFamiliesChanged }) {
+function StudentsTab({ t }) {
   const [familyGroups, setFamilyGroups] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [newFamilyName, setNewFamilyName] = useState('')
   const [creating, setCreating] = useState(false)
   const [addMemberFamily, setAddMemberFamily] = useState(null)
+  const [invitations, setInvitations] = useState([])
+  const [showInvite, setShowInvite] = useState(false)
+  const [showInvitations, setShowInvitations] = useState(false)
 
   useEffect(() => {
     getFamilyMembers().then(data => { setFamilyGroups(data); setLoaded(true) })
+    getInvitations().then(setInvitations)
   }, [])
 
   const handleCreateFamily = async (e) => {
@@ -445,7 +402,6 @@ function StudentsTab({ t, onFamiliesChanged }) {
       const family = await createFamily(newFamilyName.trim())
       setFamilyGroups(prev => [...prev, { familyId: family.id, familyName: family.name, members: [] }].sort((a, b) => a.familyName.localeCompare(b.familyName)))
       setNewFamilyName('')
-      onFamiliesChanged()
     } finally {
       setCreating(false)
     }
@@ -456,7 +412,6 @@ function StudentsTab({ t, onFamiliesChanged }) {
     try {
       await deleteFamily(familyId)
       setFamilyGroups(prev => prev.filter(g => g.familyId !== familyId))
-      onFamiliesChanged()
     } catch {}
   }
 
@@ -481,6 +436,13 @@ function StudentsTab({ t, onFamiliesChanged }) {
     } catch {}
   }
 
+  const handleDeleteInvitation = async (id) => {
+    try {
+      await deleteInvitation(id)
+      setInvitations(prev => prev.filter(i => i.id !== id))
+    } catch {}
+  }
+
   const handleMemberCreated = (familyId, member) => {
     setFamilyGroups(prev => prev.map(g =>
       g.familyId === familyId
@@ -489,8 +451,39 @@ function StudentsTab({ t, onFamiliesChanged }) {
     ))
   }
 
+  const familiesForInvite = familyGroups.map(g => ({ id: g.familyId, name: g.familyName }))
+
   return (
     <>
+      <div className="invite-bar">
+        <button className="btn-icon-text btn-primary" onClick={() => setShowInvite(true)}>
+          <UserPlus size={16} />
+          <span>{t('teacher.inviteButton')}</span>
+        </button>
+        {invitations.length > 0 && (
+          <button className="btn-ghost" onClick={() => setShowInvitations(v => !v)}>
+            {t('teacher.pendingInvitations', invitations.length)}
+          </button>
+        )}
+      </div>
+
+      {showInvitations && invitations.length > 0 && (
+        <section className="invitations-section">
+          <h3>{t('teacher.pendingInvitationsTitle')}</h3>
+          <ul className="invitation-list">
+            {invitations.map(inv => (
+              <li key={inv.id} className="invitation-item">
+                <span className="inv-email">{inv.email}</span>
+                <span className="inv-role">{inv.role === 'family_member' ? t('teacher.roleFamilyMember') : t('teacher.roleFamily')}</span>
+                <button className="btn-icon btn-delete" onClick={() => handleDeleteInvitation(inv.id)} title={t('common.delete')}>
+                  <Trash2 size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <form className="family-create-form" onSubmit={handleCreateFamily}>
         <input
           type="text"
@@ -568,6 +561,15 @@ function StudentsTab({ t, onFamiliesChanged }) {
           t={t}
           onClose={() => setAddMemberFamily(null)}
           onCreated={(member) => handleMemberCreated(addMemberFamily.id, member)}
+        />
+      )}
+
+      {showInvite && (
+        <InviteModal
+          families={familiesForInvite}
+          t={t}
+          onClose={() => setShowInvite(false)}
+          onCreated={(inv) => setInvitations(prev => [inv, ...prev])}
         />
       )}
     </>
@@ -832,15 +834,7 @@ export default function TeacherDashboard() {
   const { locale, setLocale, t } = useLocale()
   const navigate = useNavigate()
   const [tab, setTab] = useState('recordings')
-  const [families, setFamilies] = useState([])
-  const [invitations, setInvitations] = useState([])
 
-  const reloadFamilies = () => getFamilies().then(setFamilies)
-
-  useEffect(() => {
-    reloadFamilies()
-    getInvitations().then(setInvitations)
-  }, [])
 
   const switchLocale = async (l) => {
     setLocale(l)
@@ -888,16 +882,8 @@ export default function TeacherDashboard() {
       </nav>
 
       <main className="dashboard-main">
-        {tab === 'recordings' && (
-          <RecordingsTab
-            t={t}
-            dateLocale={dateLocale}
-            families={families}
-            invitations={invitations}
-            setInvitations={setInvitations}
-          />
-        )}
-        {tab === 'students' && <StudentsTab t={t} onFamiliesChanged={reloadFamilies} />}
+        {tab === 'recordings' && <RecordingsTab t={t} dateLocale={dateLocale} />}
+        {tab === 'students' && <StudentsTab t={t} />}
         {tab === 'lessons' && <LessonsTab t={t} dateLocale={dateLocale} />}
       </main>
     </div>
