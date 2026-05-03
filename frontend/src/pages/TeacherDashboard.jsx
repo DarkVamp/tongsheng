@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Trash2, LogOut, Send, UserPlus, Copy, X, Search, GraduationCap } from 'lucide-react'
+import { Trash2, LogOut, Send, UserPlus, Users, Copy, X, Search, GraduationCap } from 'lucide-react'
 import Icon from '../components/Icon'
 import LuckyWheel from '../components/LuckyWheel'
 import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment, reactToComment } from '../api/recordings'
@@ -872,7 +872,7 @@ export default function TeacherDashboard() {
           {t('teacher.tabRecordings')}
         </button>
         <button className={tab === 'students' ? 'active' : ''} onClick={() => setTab('students')}>
-          <Icon name="person" size={15} />
+          <Users size={15} />
           {t('teacher.tabStudents')}
         </button>
         <button className={tab === 'lessons' ? 'active' : ''} onClick={() => setTab('lessons')}>
