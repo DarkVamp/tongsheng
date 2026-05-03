@@ -6,6 +6,7 @@ use App\Entity\Attendance;
 use App\Entity\Comment;
 use App\Entity\CommentReaction;
 use App\Entity\Family;
+use App\Entity\HomeworkImage;
 use App\Entity\Invitation;
 use App\Entity\Lesson;
 use App\Entity\Recording;
@@ -277,6 +278,31 @@ class EntityTest extends TestCase
 
         $lesson->setTitle(null);
         self::assertNull($lesson->getTitle());
+    }
+
+    // ── HomeworkImage ─────────────────────────────────────────────────────────
+
+    public function testHomeworkImageConstructorAndSetters(): void
+    {
+        $lesson = new Lesson();
+        $family = new Family();
+        $family->setName('Test');
+
+        $img = new HomeworkImage();
+        self::assertNull($img->getId());
+        self::assertInstanceOf(\DateTimeImmutable::class, $img->getUploadedAt());
+
+        $img->setLesson($lesson)
+            ->setFamily($family)
+            ->setFilePath('abc123.jpg')
+            ->setOriginalFilename('photo.jpg')
+            ->setMimeType('image/jpeg');
+
+        self::assertSame($lesson, $img->getLesson());
+        self::assertSame($family, $img->getFamily());
+        self::assertSame('abc123.jpg', $img->getFilePath());
+        self::assertSame('photo.jpg', $img->getOriginalFilename());
+        self::assertSame('image/jpeg', $img->getMimeType());
     }
 
     // ── Attendance ────────────────────────────────────────────────────────────

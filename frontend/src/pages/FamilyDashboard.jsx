@@ -3,10 +3,22 @@ import fixWebmDuration from 'fix-webm-duration'
 import { Mic, StopCircle, Upload, Trash2, LogOut, Send } from 'lucide-react'
 import Icon from '../components/Icon'
 import { getRecordings, uploadRecording, deleteRecording, fetchAudioBlob, getComments, addComment, reactToComment } from '../api/recordings'
+import { getLatestHomework, uploadHomeworkImage, deleteHomeworkImage, fetchHomeworkImageBlob } from '../api/homework'
 import { logout, updateLocale } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
 import { useLocale } from '../context/LocaleContext'
 import { useNavigate } from 'react-router-dom'
+
+function AuthImage({ id, alt, className }) {
+  const [src, setSrc] = useState(null)
+  useEffect(() => {
+    let url
+    fetchHomeworkImageBlob(id).then(u => { url = u; setSrc(u) })
+    return () => { if (url) URL.revokeObjectURL(url) }
+  }, [id])
+  if (!src) return <div className="hw-img-placeholder" />
+  return <img src={src} alt={alt || ''} className={className} />
+}
 
 function AuthAudio({ id, className }) {
   const [src, setSrc] = useState(null)
@@ -33,6 +45,9 @@ export default function FamilyDashboard() {
   const [comments, setComments] = useState({})
   const [newComment, setNewComment] = useState({})
   const [submitting, setSubmitting] = useState(false)
+  const [homeworkData, setHomeworkData] = useState(undefined)
+  const [hwUploading, setHwUploading] = useState(false)
+  const [hwError, setHwError] = useState('')
   const mediaRecorderRef = useRef(null)
   const chunksRef = useRef([])
   const recordingStartRef = useRef(null)
@@ -47,6 +62,7 @@ export default function FamilyDashboard() {
 
   useEffect(() => {
     getRecordings().then(setRecordings)
+    getLatestHomework().then(d => setHomeworkData(d)).catch(() => setHomeworkData(null))
   }, [])
 
   const switchLocale = async (l) => {
@@ -111,6 +127,29 @@ export default function FamilyDashboard() {
     await logout().catch(() => {})
     signOut()
     navigate('/login')
+  }
+
+  const handleHwUpload = async (e) => {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file || !homeworkData?.lesson) return
+    setHwUploading(true)
+    setHwError('')
+    try {
+      const img = await uploadHomeworkImage(homeworkData.lesson.id, file)
+      setHomeworkData(prev => ({ ...prev, images: [...prev.images, img] }))
+    } catch (err) {
+      setHwError(err.response?.data?.error ?? t('homework.uploadFailed'))
+    } finally {
+      setHwUploading(false)
+    }
+  }
+
+  const handleHwDelete = async (imgId) => {
+    try {
+      await deleteHomeworkImage(imgId)
+      setHomeworkData(prev => ({ ...prev, images: prev.images.filter(i => i.id !== imgId) }))
+    } catch {}
   }
 
   const handleDelete = async (id) => {
@@ -190,6 +229,49 @@ export default function FamilyDashboard() {
       </header>
 
       <main className="dashboard-main">
+        {homeworkData !== undefined && (
+          <section className="upload-section homework-section">
+            <h2>{t('homework.title')} 📚</h2>
+            {homeworkData === null || homeworkData?.lesson === null ? (
+              <p className="empty">{t('homework.noActive')}</p>
+            ) : (
+              <>
+                <p className="homework-lesson-info">
+                  {new Date(homeworkData.lesson.date + 'T00:00:00').toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {homeworkData.lesson.title && <span className="homework-lesson-title"> — {homeworkData.lesson.title}</span>}
+                </p>
+
+                {homeworkData.images.length > 0 ? (
+                  <div className="homework-gallery">
+                    {homeworkData.images.map(img => (
+                      <div key={img.id} className="homework-thumb">
+                        <AuthImage id={img.id} alt={img.originalFilename} className="hw-thumb-img" />
+                        <button
+                          className="btn-icon btn-delete hw-thumb-del"
+                          onClick={() => handleHwDelete(img.id)}
+                          title={t('common.delete')}
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="empty">{t('homework.noSubmissions')}</p>
+                )}
+
+                <label className="btn-file hw-upload-btn">
+                  <Upload size={15} />
+                  <span>{t('homework.addImage')}</span>
+                  <input type="file" accept="image/*" onChange={handleHwUpload} disabled={hwUploading} />
+                </label>
+                {hwUploading && <p className="status">{t('homework.uploading')}</p>}
+                {hwError && <p className="error">{hwError}</p>}
+              </>
+            )}
+          </section>
+        )}
+
         <section className="upload-section">
           <h2>{t('family.todayRecording')}</h2>
           {hasUploadedToday ? (

@@ -5,7 +5,8 @@ import LuckyWheel from '../components/LuckyWheel'
 import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment, reactToComment } from '../api/recordings'
 import { getInvitations, createInvitation, deleteInvitation } from '../api/invitations'
 import { getFamilies, createFamily, deleteFamily, getFamilyMembers, createMember, deleteMember } from '../api/families'
-import { toggleStudent, getLessons, createLesson, deleteLesson, getLessonAttendance, setAttendance } from '../api/lessons'
+import { toggleStudent, getLessons, createLesson, deleteLesson, getLessonAttendance, setAttendance, patchLesson } from '../api/lessons'
+import { getHomeworkAllForLesson, fetchHomeworkImageBlob } from '../api/homework'
 import { logout, updateLocale } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
 import { useLocale } from '../context/LocaleContext'
@@ -21,6 +22,17 @@ function AuthAudio({ id, className }) {
   const { t } = useLocale()
   if (!src) return <span className="audio-loading">{t('common.loading')}</span>
   return <audio controls src={src} className={className} />
+}
+
+function AuthImage({ id, alt, className }) {
+  const [src, setSrc] = useState(null)
+  useEffect(() => {
+    let url
+    fetchHomeworkImageBlob(id).then(u => { url = u; setSrc(u) })
+    return () => { if (url) URL.revokeObjectURL(url) }
+  }, [id])
+  if (!src) return <div className="hw-img-placeholder" />
+  return <img src={src} alt={alt || ''} className={className} />
 }
 
 function InviteModal({ families, onClose, onCreated, t }) {
@@ -551,6 +563,7 @@ function LessonsTab({ t, dateLocale }) {
   const [activeLessonId, setActiveLessonId] = useState(null)
   const [attendanceMap, setAttendanceMap] = useState({})
   const [attendanceError, setAttendanceError] = useState({})
+  const [homeworkMap, setHomeworkMap] = useState({})
   const [listError, setListError] = useState('')
   const [wheelLessonId, setWheelLessonId] = useState(null)
 
@@ -597,6 +610,24 @@ function LessonsTab({ t, dateLocale }) {
         setAttendanceError(prev => ({ ...prev, [id]: msg }))
       }
     }
+    const lesson = lessons.find(l => l.id === id)
+    if (lesson?.homeworkAssigned && !homeworkMap[id]) {
+      try {
+        const data = await getHomeworkAllForLesson(id)
+        setHomeworkMap(prev => ({ ...prev, [id]: data }))
+      } catch {}
+    }
+  }
+
+  const handleToggleHomework = async (id, current) => {
+    try {
+      const updated = await patchLesson(id, { homeworkAssigned: !current })
+      setLessons(prev => prev.map(l => l.id === id ? { ...l, homeworkAssigned: updated.homeworkAssigned } : l))
+      if (!current && activeLessonId === id && !homeworkMap[id]) {
+        const data = await getHomeworkAllForLesson(id)
+        setHomeworkMap(prev => ({ ...prev, [id]: data }))
+      }
+    } catch {}
   }
 
   const handleAttendance = async (lessonId, studentId, present) => {
@@ -683,6 +714,13 @@ function LessonsTab({ t, dateLocale }) {
                       🎡
                     </button>
                   )}
+                  <button
+                    className={`btn-icon-text btn-ghost btn-hw-toggle${l.homeworkAssigned ? ' hw-active' : ''}`}
+                    onClick={e => { e.stopPropagation(); handleToggleHomework(l.id, l.homeworkAssigned) }}
+                    title={l.homeworkAssigned ? t('teacher.homeworkAssigned') : t('teacher.homeworkNotAssigned')}
+                  >
+                    📚
+                  </button>
                   <button className="btn-icon btn-toggle" onClick={() => toggleLesson(l.id)} title={isActive ? t('teacher.close') : t('teacher.attendance')}>
                     <Icon name="chevron-down" size={16} style={isActive ? { transform: 'rotate(180deg)' } : {}} />
                   </button>
@@ -719,6 +757,32 @@ function LessonsTab({ t, dateLocale }) {
                   {attendanceError[l.id]
                     ? <p className="error">{attendanceError[l.id]}</p>
                     : <p className="empty">{t('common.loading')}</p>}
+                </div>
+              )}
+
+              {isActive && l.homeworkAssigned && (
+                <div className="homework-submissions-section">
+                  <h4 className="homework-submissions-title">{t('teacher.homeworkTitle')} 📚</h4>
+                  {homeworkMap[l.id] ? (
+                    homeworkMap[l.id].families.map(f => (
+                      <div key={f.id} className={`hw-family-row${f.submitted ? ' hw-submitted' : ''}`}>
+                        <span className="hw-family-name">{f.name}</span>
+                        {f.submitted
+                          ? <span className="hw-badge hw-badge-ok">{t('homework.submitted')} ({f.images.length})</span>
+                          : <span className="hw-badge hw-badge-missing">{t('homework.notSubmitted')}</span>
+                        }
+                        {f.images.length > 0 && (
+                          <div className="homework-gallery-sm">
+                            {f.images.map(img => (
+                              <AuthImage key={img.id} id={img.id} alt={img.originalFilename} className="hw-thumb-img-sm" />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="empty">{t('common.loading')}</p>
+                  )}
                 </div>
               )}
             </li>

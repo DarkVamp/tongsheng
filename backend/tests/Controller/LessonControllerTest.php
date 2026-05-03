@@ -2,23 +2,10 @@
 
 namespace App\Tests\Controller;
 
-use App\Entity\Lesson;
 use App\Tests\ApiTestCase;
 
 class LessonControllerTest extends ApiTestCase
 {
-    private function createLesson(string $date = '2025-06-01', ?string $title = null): Lesson
-    {
-        $teacher = $this->em->getRepository(\App\Entity\User::class)->findOneBy(['role' => 'teacher']);
-        $lesson = new Lesson();
-        $lesson->setDate(new \DateTimeImmutable($date))
-            ->setTitle($title)
-            ->setCreatedBy($teacher);
-        $this->em->persist($lesson);
-        $this->em->flush();
-        return $lesson;
-    }
-
     // ── GET /api/lessons ──────────────────────────────────────────────────────
 
     public function testListForbiddenForFamilyMember(): void
@@ -79,6 +66,43 @@ class LessonControllerTest extends ApiTestCase
         $this->req('POST', '/api/lessons', ['date' => '2025-06-01', 'title' => 'Lektion 5'], 'tok_lcreate_title');
         self::assertSame(201, $this->httpStatus());
         self::assertSame('Lektion 5', $this->responseData()['title']);
+    }
+
+    // ── PATCH /api/lessons/{id} ───────────────────────────────────────────────
+
+    public function testPatchForbiddenForFamilyMember(): void
+    {
+        $family = $this->createFamily();
+        $this->createMember($family, 'm@t.com', 'tok_lpatch_fm');
+        $this->req('PATCH', '/api/lessons/1', ['homeworkAssigned' => true], 'tok_lpatch_fm');
+        self::assertSame(403, $this->httpStatus());
+    }
+
+    public function testPatchNotFound(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_lpatch_nf');
+        $this->req('PATCH', '/api/lessons/99999', ['homeworkAssigned' => true], 'tok_lpatch_nf');
+        self::assertSame(404, $this->httpStatus());
+    }
+
+    public function testPatchHomeworkAssigned(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_lpatch_hw');
+        $lesson = $this->createLesson();
+
+        $this->req('PATCH', '/api/lessons/' . $lesson->getId(), ['homeworkAssigned' => true], 'tok_lpatch_hw');
+        self::assertSame(200, $this->httpStatus());
+        self::assertTrue($this->responseData()['homeworkAssigned']);
+    }
+
+    public function testPatchTitle(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_lpatch_title');
+        $lesson = $this->createLesson('2025-06-01', 'Alt');
+
+        $this->req('PATCH', '/api/lessons/' . $lesson->getId(), ['title' => 'Neu'], 'tok_lpatch_title');
+        self::assertSame(200, $this->httpStatus());
+        self::assertSame('Neu', $this->responseData()['title']);
     }
 
     // ── POST /api/lessons/{id}/delete ─────────────────────────────────────────

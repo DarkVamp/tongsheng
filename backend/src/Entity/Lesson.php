@@ -29,6 +29,9 @@ class Lesson
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $homeworkAssigned = false;
+
     #[ORM\OneToMany(targetEntity: Attendance::class, mappedBy: 'lesson', cascade: ['remove'])]
     private Collection $attendances;
 
@@ -50,6 +53,9 @@ class Lesson
     public function setCreatedBy(User $createdBy): static { $this->createdBy = $createdBy; return $this; }
 
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
+
+    public function isHomeworkAssigned(): bool { return $this->homeworkAssigned; }
+    public function setHomeworkAssigned(bool $v): static { $this->homeworkAssigned = $v; return $this; }
 
     public function getAttendances(): Collection { return $this->attendances; }
 }

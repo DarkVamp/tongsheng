@@ -72,6 +72,44 @@ class LessonController extends AbstractController
         return $this->json($this->serializeLesson($lesson, 0, 0), Response::HTTP_CREATED);
     }
 
+    // ── Unterrichtsstunde aktualisieren (homeworkAssigned, title) ────────────
+
+    #[Route('/{id}', methods: ['PATCH'])]
+    public function patch(
+        int $id,
+        Request $request,
+        LessonRepository $repo,
+        AttendanceRepository $attendanceRepo,
+        UserRepository $userRepo,
+        EntityManagerInterface $em
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+        if (!$user->isTeacher()) {
+            return $this->json(['error' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $lesson = $repo->find($id);
+        if (!$lesson) {
+            return $this->json(['error' => 'Not found.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        if (array_key_exists('homeworkAssigned', $data)) {
+            $lesson->setHomeworkAssigned((bool)$data['homeworkAssigned']);
+        }
+        if (array_key_exists('title', $data)) {
+            $lesson->setTitle(trim($data['title'] ?? '') ?: null);
+        }
+
+        $em->flush();
+
+        $totalStudents = count($userRepo->findBy(['isStudent' => true]));
+        $presentCount  = $attendanceRepo->count(['lesson' => $lesson, 'present' => true]);
+
+        return $this->json($this->serializeLesson($lesson, $presentCount, $totalStudents));
+    }
+
     // ── Unterrichtsstunde löschen ────────────────────────────────────────────
 
     #[Route('/{id}/delete', methods: ['POST'])]
@@ -187,11 +225,12 @@ class LessonController extends AbstractController
     private function serializeLesson(Lesson $l, int $presentCount, int $totalStudents): array
     {
         return [
-            'id'            => $l->getId(),
-            'date'          => $l->getDate()->format('Y-m-d'),
-            'title'         => $l->getTitle(),
-            'presentCount'  => $presentCount,
-            'totalStudents' => $totalStudents,
+            'id'               => $l->getId(),
+            'date'             => $l->getDate()->format('Y-m-d'),
+            'title'            => $l->getTitle(),
+            'presentCount'     => $presentCount,
+            'totalStudents'    => $totalStudents,
+            'homeworkAssigned' => $l->isHomeworkAssigned(),
         ];
     }
 }

@@ -15,4 +15,14 @@ class LessonRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Lesson::class);
     }
+
+    public function findLatestWithHomework(): ?Lesson
+    {
+        return $this->createQueryBuilder('l')
+            ->where('l.homeworkAssigned = true')
+            ->orderBy('l.date', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

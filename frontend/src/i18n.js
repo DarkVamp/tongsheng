@@ -130,6 +130,19 @@ const translations = {
     'comment.reaction.heart': 'Herz',
     'comment.reaction.thumbs_down': 'Daumen runter',
 
+    // Hausaufgaben
+    'homework.title': 'Hausaufgaben',
+    'homework.noActive': 'Aktuell keine Hausaufgaben.',
+    'homework.addImage': 'Foto hochladen',
+    'homework.uploading': 'Wird hochgeladen…',
+    'homework.uploadFailed': 'Upload fehlgeschlagen.',
+    'homework.noSubmissions': 'Noch kein Bild hochgeladen.',
+    'homework.submitted': 'Eingereicht',
+    'homework.notSubmitted': 'Noch nicht eingereicht',
+    'teacher.homeworkAssigned': 'HA zugewiesen',
+    'teacher.homeworkNotAssigned': 'Keine HA',
+    'teacher.homeworkTitle': 'Einreichungen',
+
     // Dates
     'date.locale': 'de-DE',
   },
@@ -264,6 +277,19 @@ const translations = {
     'comment.reaction.thumbs_up': '点赞',
     'comment.reaction.heart': '爱心',
     'comment.reaction.thumbs_down': '踩',
+
+    // 家庭作业
+    'homework.title': '家庭作业',
+    'homework.noActive': '目前没有家庭作业。',
+    'homework.addImage': '上传图片',
+    'homework.uploading': '上传中…',
+    'homework.uploadFailed': '上传失败。',
+    'homework.noSubmissions': '尚未上传图片。',
+    'homework.submitted': '已提交',
+    'homework.notSubmitted': '尚未提交',
+    'teacher.homeworkAssigned': '已布置作业',
+    'teacher.homeworkNotAssigned': '未布置作业',
+    'teacher.homeworkTitle': '提交情况',
 
     // Dates
     'date.locale': 'zh-CN',

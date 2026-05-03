@@ -4,6 +4,7 @@ namespace App\Tests;
 
 use App\Entity\Comment;
 use App\Entity\Family;
+use App\Entity\Lesson;
 use App\Entity\Recording;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -18,6 +19,7 @@ abstract class ApiTestCase extends WebTestCase
     protected EntityManagerInterface $em;
 
     protected const TEST_RECORDINGS_DIR = '/tmp/tongsheng_test_recordings';
+    protected const TEST_HOMEWORK_DIR   = '/tmp/tongsheng_test_homework';
 
     private static bool $schemaCreated = false;
 
@@ -40,13 +42,14 @@ abstract class ApiTestCase extends WebTestCase
         $this->truncateAllTables();
 
         @mkdir(self::TEST_RECORDINGS_DIR, 0755, true);
+        @mkdir(self::TEST_HOMEWORK_DIR, 0755, true);
     }
 
     private function truncateAllTables(): void
     {
         $conn = $this->em->getConnection();
         $conn->executeStatement('SET FOREIGN_KEY_CHECKS=0');
-        foreach (['comment_reactions', 'comments', 'recordings', 'attendance', 'lessons', 'invitations', 'users', 'families'] as $table) {
+        foreach (['comment_reactions', 'comments', 'homework_images', 'recordings', 'attendance', 'lessons', 'invitations', 'users', 'families'] as $table) {
             $conn->executeStatement("TRUNCATE TABLE `$table`");
         }
         $conn->executeStatement('SET FOREIGN_KEY_CHECKS=1');
@@ -57,6 +60,9 @@ abstract class ApiTestCase extends WebTestCase
     {
         if (is_dir(self::TEST_RECORDINGS_DIR)) {
             $this->rmdirRecursive(self::TEST_RECORDINGS_DIR);
+        }
+        if (is_dir(self::TEST_HOMEWORK_DIR)) {
+            $this->rmdirRecursive(self::TEST_HOMEWORK_DIR);
         }
         parent::tearDown();
     }
@@ -133,6 +139,19 @@ abstract class ApiTestCase extends WebTestCase
         $dir = self::TEST_RECORDINGS_DIR . '/' . $userId;
         @mkdir($dir, 0755, true);
         file_put_contents($dir . '/' . $filename, $content);
+    }
+
+    protected function createLesson(string $date = '2025-06-01', ?string $title = null, bool $homeworkAssigned = false): Lesson
+    {
+        $teacher = $this->em->getRepository(User::class)->findOneBy(['role' => 'teacher']);
+        $lesson = new Lesson();
+        $lesson->setDate(new \DateTimeImmutable($date))
+            ->setTitle($title)
+            ->setHomeworkAssigned($homeworkAssigned)
+            ->setCreatedBy($teacher);
+        $this->em->persist($lesson);
+        $this->em->flush();
+        return $lesson;
     }
 
     protected function addComment(Recording $recording, User $author, string $content = 'Test comment'): Comment
