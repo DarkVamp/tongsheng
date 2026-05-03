@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLocale } from '../context/LocaleContext'
 import { useNavigate } from 'react-router-dom'
 
-function AuthImage({ id, alt, className }) {
+function AuthImage({ id, alt, className, onZoom }) {
   const [src, setSrc] = useState(null)
   useEffect(() => {
     let url
@@ -17,7 +17,29 @@ function AuthImage({ id, alt, className }) {
     return () => { if (url) URL.revokeObjectURL(url) }
   }, [id])
   if (!src) return <div className="hw-img-placeholder" />
-  return <img src={src} alt={alt || ''} className={className} />
+  return (
+    <img
+      src={src}
+      alt={alt || ''}
+      className={className}
+      onClick={onZoom ? () => onZoom(src) : undefined}
+      style={onZoom ? { cursor: 'zoom-in' } : undefined}
+    />
+  )
+}
+
+function Lightbox({ src, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+  return (
+    <div className="lightbox-overlay" onClick={onClose}>
+      <img src={src} alt="" className="lightbox-img" onClick={e => e.stopPropagation()} />
+      <button className="lightbox-close" onClick={onClose}>✕</button>
+    </div>
+  )
 }
 
 function AuthAudio({ id, className }) {
@@ -48,6 +70,7 @@ export default function FamilyDashboard() {
   const [homeworkData, setHomeworkData] = useState(undefined)
   const [hwUploading, setHwUploading] = useState(false)
   const [hwError, setHwError] = useState('')
+  const [lightboxSrc, setLightboxSrc] = useState(null)
   const mediaRecorderRef = useRef(null)
   const chunksRef = useRef([])
   const recordingStartRef = useRef(null)
@@ -245,7 +268,7 @@ export default function FamilyDashboard() {
                   <div className="homework-gallery">
                     {homeworkData.images.map(img => (
                       <div key={img.id} className="homework-thumb">
-                        <AuthImage id={img.id} alt={img.originalFilename} className="hw-thumb-img" />
+                        <AuthImage id={img.id} alt={img.originalFilename} className="hw-thumb-img" onZoom={setLightboxSrc} />
                         <button
                           className="btn-icon btn-delete hw-thumb-del"
                           onClick={() => handleHwDelete(img.id)}
@@ -391,6 +414,7 @@ export default function FamilyDashboard() {
           )}
         </section>
       </main>
+      {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
     </div>
   )
 }

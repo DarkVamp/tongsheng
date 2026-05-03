@@ -24,7 +24,7 @@ function AuthAudio({ id, className }) {
   return <audio controls src={src} className={className} />
 }
 
-function AuthImage({ id, alt, className }) {
+function AuthImage({ id, alt, className, onZoom }) {
   const [src, setSrc] = useState(null)
   useEffect(() => {
     let url
@@ -32,7 +32,29 @@ function AuthImage({ id, alt, className }) {
     return () => { if (url) URL.revokeObjectURL(url) }
   }, [id])
   if (!src) return <div className="hw-img-placeholder" />
-  return <img src={src} alt={alt || ''} className={className} />
+  return (
+    <img
+      src={src}
+      alt={alt || ''}
+      className={className}
+      onClick={onZoom ? () => onZoom(src) : undefined}
+      style={onZoom ? { cursor: 'zoom-in' } : undefined}
+    />
+  )
+}
+
+function Lightbox({ src, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+  return (
+    <div className="lightbox-overlay" onClick={onClose}>
+      <img src={src} alt="" className="lightbox-img" onClick={e => e.stopPropagation()} />
+      <button className="lightbox-close" onClick={onClose}>✕</button>
+    </div>
+  )
 }
 
 function InviteModal({ families, onClose, onCreated, t }) {
@@ -564,6 +586,7 @@ function LessonsTab({ t, dateLocale }) {
   const [attendanceMap, setAttendanceMap] = useState({})
   const [attendanceError, setAttendanceError] = useState({})
   const [homeworkMap, setHomeworkMap] = useState({})
+  const [lightboxSrc, setLightboxSrc] = useState(null)
   const [listError, setListError] = useState('')
   const [wheelLessonId, setWheelLessonId] = useState(null)
 
@@ -774,7 +797,7 @@ function LessonsTab({ t, dateLocale }) {
                         {f.images.length > 0 && (
                           <div className="homework-gallery-sm">
                             {f.images.map(img => (
-                              <AuthImage key={img.id} id={img.id} alt={img.originalFilename} className="hw-thumb-img-sm" />
+                              <AuthImage key={img.id} id={img.id} alt={img.originalFilename} className="hw-thumb-img-sm" onZoom={setLightboxSrc} />
                             ))}
                           </div>
                         )}
@@ -797,6 +820,7 @@ function LessonsTab({ t, dateLocale }) {
           t={t}
         />
       )}
+      {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
     </>
   )
 }

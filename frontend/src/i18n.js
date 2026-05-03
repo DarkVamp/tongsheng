@@ -141,7 +141,7 @@ const translations = {
     'homework.notSubmitted': 'Noch nicht eingereicht',
     'teacher.homeworkAssigned': 'HA zugewiesen',
     'teacher.homeworkNotAssigned': 'Keine HA',
-    'teacher.homeworkTitle': 'Einreichungen',
+    'teacher.homeworkTitle': 'Hausaufgaben',
 
     // Dates
     'date.locale': 'de-DE',
@@ -289,7 +289,7 @@ const translations = {
     'homework.notSubmitted': '尚未提交',
     'teacher.homeworkAssigned': '已布置作业',
     'teacher.homeworkNotAssigned': '未布置作业',
-    'teacher.homeworkTitle': '提交情况',
+    'teacher.homeworkTitle': '家庭作业',
 
     // Dates
     'date.locale': 'zh-CN',
