@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Trash2, LogOut, Send, UserPlus, Users, Copy, X, Search, GraduationCap } from 'lucide-react'
+import { Trash2, LogOut, Send, UserPlus, Users, X, Search, GraduationCap } from 'lucide-react'
 import Icon from '../components/Icon'
 import LuckyWheel from '../components/LuckyWheel'
 import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment, reactToComment } from '../api/recordings'
-import { getInvitations, createInvitation, deleteInvitation } from '../api/invitations'
 import { createFamily, deleteFamily, getFamilyMembers, createMember, deleteMember } from '../api/families'
 import { toggleStudent, getLessons, createLesson, deleteLesson, getLessonAttendance, setAttendance, patchLesson } from '../api/lessons'
 import { getHomeworkAllForLesson, fetchHomeworkImageBlob } from '../api/homework'
@@ -53,84 +52,6 @@ function Lightbox({ src, onClose }) {
     <div className="lightbox-overlay" onClick={onClose}>
       <img src={src} alt="" className="lightbox-img" onClick={e => e.stopPropagation()} />
       <button className="lightbox-close" onClick={onClose}>✕</button>
-    </div>
-  )
-}
-
-function InviteModal({ families, onClose, onCreated, t }) {
-  const [email, setEmail] = useState('')
-  const [familyId, setFamilyId] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-  const [created, setCreated] = useState(null)
-
-  const baseUrl = window.location.origin
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setSubmitting(true)
-    try {
-      const inv = await createInvitation({ email, familyId: familyId ? Number(familyId) : null })
-      setCreated(inv)
-      onCreated(inv)
-    } catch (err) {
-      setError(err.response?.data?.error ?? t('teacher.inviteError'))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>{t('teacher.inviteTitle')}</h2>
-          <button className="btn-icon btn-ghost" onClick={onClose}><X size={18} /></button>
-        </div>
-
-        {created ? (
-          <div className="invite-success">
-            <p>{t('teacher.inviteSuccess')}</p>
-            <div className="invite-link-box">
-              <input
-                readOnly
-                value={`${baseUrl}/register?token=${created.token}`}
-                onFocus={e => e.target.select()}
-              />
-              <button onClick={() => navigator.clipboard?.writeText(`${baseUrl}/register?token=${created.token}`)}>
-                <Copy size={15} />
-                <span>{t('teacher.copyLink')}</span>
-              </button>
-            </div>
-            <p className="invite-expires">{t('teacher.inviteExpires', new Date(created.expiresAt).toLocaleDateString())}</p>
-            <button className="btn-ghost" onClick={onClose}>{t('teacher.close')}</button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <label>
-              {t('teacher.inviteEmail')}
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
-            </label>
-            <label>
-              {t('teacher.inviteFamily')}
-              <select value={familyId} onChange={e => setFamilyId(e.target.value)} required>
-                <option value="">{t('teacher.selectFamily')}</option>
-                {families.map(f => (
-                  <option key={f.id} value={f.id}>{f.name}</option>
-                ))}
-              </select>
-            </label>
-            {error && <p className="error">{error}</p>}
-            <div className="modal-actions">
-              <button type="submit" disabled={submitting || !familyId}>
-                {submitting ? t('common.sending') : t('teacher.inviteSend')}
-              </button>
-              <button type="button" className="btn-ghost" onClick={onClose}>{t('common.cancel')}</button>
-            </div>
-          </form>
-        )}
-      </div>
     </div>
   )
 }
@@ -385,13 +306,9 @@ function StudentsTab({ t }) {
   const [newFamilyName, setNewFamilyName] = useState('')
   const [creating, setCreating] = useState(false)
   const [addMemberFamily, setAddMemberFamily] = useState(null)
-  const [invitations, setInvitations] = useState([])
-  const [showInvite, setShowInvite] = useState(false)
-  const [showInvitations, setShowInvitations] = useState(false)
 
   useEffect(() => {
     getFamilyMembers().then(data => { setFamilyGroups(data); setLoaded(true) })
-    getInvitations().then(setInvitations)
   }, [])
 
   const handleCreateFamily = async (e) => {
@@ -436,13 +353,6 @@ function StudentsTab({ t }) {
     } catch {}
   }
 
-  const handleDeleteInvitation = async (id) => {
-    try {
-      await deleteInvitation(id)
-      setInvitations(prev => prev.filter(i => i.id !== id))
-    } catch {}
-  }
-
   const handleMemberCreated = (familyId, member) => {
     setFamilyGroups(prev => prev.map(g =>
       g.familyId === familyId
@@ -451,39 +361,8 @@ function StudentsTab({ t }) {
     ))
   }
 
-  const familiesForInvite = familyGroups.map(g => ({ id: g.familyId, name: g.familyName }))
-
   return (
     <>
-      <div className="invite-bar">
-        <button className="btn-icon-text btn-primary" onClick={() => setShowInvite(true)}>
-          <UserPlus size={16} />
-          <span>{t('teacher.inviteButton')}</span>
-        </button>
-        {invitations.length > 0 && (
-          <button className="btn-ghost" onClick={() => setShowInvitations(v => !v)}>
-            {t('teacher.pendingInvitations', invitations.length)}
-          </button>
-        )}
-      </div>
-
-      {showInvitations && invitations.length > 0 && (
-        <section className="invitations-section">
-          <h3>{t('teacher.pendingInvitationsTitle')}</h3>
-          <ul className="invitation-list">
-            {invitations.map(inv => (
-              <li key={inv.id} className="invitation-item">
-                <span className="inv-email">{inv.email}</span>
-                <span className="inv-role">{inv.role === 'family_member' ? t('teacher.roleFamilyMember') : t('teacher.roleFamily')}</span>
-                <button className="btn-icon btn-delete" onClick={() => handleDeleteInvitation(inv.id)} title={t('common.delete')}>
-                  <Trash2 size={14} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
       <form className="family-create-form" onSubmit={handleCreateFamily}>
         <input
           type="text"
@@ -561,15 +440,6 @@ function StudentsTab({ t }) {
           t={t}
           onClose={() => setAddMemberFamily(null)}
           onCreated={(member) => handleMemberCreated(addMemberFamily.id, member)}
-        />
-      )}
-
-      {showInvite && (
-        <InviteModal
-          families={familiesForInvite}
-          t={t}
-          onClose={() => setShowInvite(false)}
-          onCreated={(inv) => setInvitations(prev => [inv, ...prev])}
         />
       )}
     </>
