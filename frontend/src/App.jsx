@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { useLocale } from './context/LocaleContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import UpdatePrompt from './components/UpdatePrompt'
 import LoginPage from './pages/LoginPage'
 import FamilyDashboard from './pages/FamilyDashboard'
 import TeacherDashboard from './pages/TeacherDashboard'
@@ -31,6 +32,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <LocaleSync />
+        <UpdatePrompt />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />

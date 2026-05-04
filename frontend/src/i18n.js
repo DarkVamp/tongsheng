@@ -143,6 +143,10 @@ const translations = {
     'teacher.homeworkNotAssigned': 'Keine HA',
     'teacher.homeworkTitle': 'Hausaufgaben',
 
+    // Update-Banner
+    'update.available': 'Neue Version verfügbar',
+    'update.now': 'Jetzt aktualisieren',
+
     // Dates
     'date.locale': 'de-DE',
   },
@@ -290,6 +294,10 @@ const translations = {
     'teacher.homeworkAssigned': '已布置作业',
     'teacher.homeworkNotAssigned': '未布置作业',
     'teacher.homeworkTitle': '家庭作业',
+
+    // Update-Banner
+    'update.available': '有新版本可用',
+    'update.now': '立即更新',
 
     // Dates
     'date.locale': 'zh-CN',
