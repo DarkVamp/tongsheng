@@ -240,8 +240,8 @@ export default function FamilyDashboard() {
         <h1>同声</h1>
         <div className="header-right">
           <div className="locale-switcher">
-            <button className={locale === 'zh' ? 'active' : ''} onClick={() => switchLocale('zh')}>中文</button>
-            <button className={locale === 'de' ? 'active' : ''} onClick={() => switchLocale('de')}>DE</button>
+            <button className={locale === 'zh' ? 'active' : ''} onClick={() => switchLocale('zh')} title="中文">🇨🇳</button>
+            <button className={locale === 'de' ? 'active' : ''} onClick={() => switchLocale('de')} title="Deutsch">🇩🇪</button>
           </div>
           <span className="user-name">{user?.name}</span>
           <button className="btn-icon-text btn-ghost" onClick={handleLogout} title={t('common.logout')}>
