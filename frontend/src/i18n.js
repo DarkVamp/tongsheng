@@ -86,6 +86,11 @@ const translations = {
     'teacher.spin': 'Drehen!',
     'teacher.spinAgain': 'Nochmal drehen',
     'teacher.noPresentStudents': 'Keine Schüler anwesend.',
+    'teacher.summary': 'Zusammenfassung',
+    'teacher.summaryPlaceholder': 'Was wurde heute durchgenommen?',
+    'teacher.summarySave': 'Speichern',
+    'teacher.summarySaved': 'Gespeichert',
+    'teacher.summarySaveError': 'Speichern fehlgeschlagen.',
 
     // Einladungen
     'teacher.inviteButton': 'Einladen',
@@ -238,6 +243,11 @@ const translations = {
     'teacher.spin': '转动！',
     'teacher.spinAgain': '再转一次',
     'teacher.noPresentStudents': '没有学生在场。',
+    'teacher.summary': '课堂总结',
+    'teacher.summaryPlaceholder': '今天学了什么？',
+    'teacher.summarySave': '保存',
+    'teacher.summarySaved': '已保存',
+    'teacher.summarySaveError': '保存失败。',
 
     // 邀请
     'teacher.inviteButton': '邀请',

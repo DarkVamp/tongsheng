@@ -237,7 +237,7 @@ export default function FamilyDashboard() {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <h1>同声</h1>
+        <h1>童声</h1>
         <div className="header-right">
           <div className="locale-switcher">
             <button className={locale === 'zh' ? 'active' : ''} onClick={() => switchLocale('zh')} title="中文">🇨🇳</button>

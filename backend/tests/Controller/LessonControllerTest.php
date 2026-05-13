@@ -105,6 +105,37 @@ class LessonControllerTest extends ApiTestCase
         self::assertSame('Neu', $this->responseData()['title']);
     }
 
+    public function testPatchSummary(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_lpatch_summary');
+        $lesson = $this->createLesson();
+
+        $this->req('PATCH', '/api/lessons/' . $lesson->getId(), ['summary' => 'Heute haben wir Töne geübt.'], 'tok_lpatch_summary');
+        self::assertSame(200, $this->httpStatus());
+        self::assertSame('Heute haben wir Töne geübt.', $this->responseData()['summary']);
+    }
+
+    public function testPatchSummaryClearsWithEmpty(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_lpatch_summary_clear');
+        $lesson = $this->createLesson();
+
+        $this->req('PATCH', '/api/lessons/' . $lesson->getId(), ['summary' => 'Text'], 'tok_lpatch_summary_clear');
+        $this->req('PATCH', '/api/lessons/' . $lesson->getId(), ['summary' => ''], 'tok_lpatch_summary_clear');
+        self::assertSame(200, $this->httpStatus());
+        self::assertNull($this->responseData()['summary']);
+    }
+
+    public function testSummaryInSerializedLesson(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_lpatch_summary_serial');
+        $lesson = $this->createLesson();
+
+        $this->req('GET', '/api/lessons', [], 'tok_lpatch_summary_serial');
+        self::assertArrayHasKey('summary', $this->responseData()[0]);
+        self::assertNull($this->responseData()[0]['summary']);
+    }
+
     // ── POST /api/lessons/{id}/delete ─────────────────────────────────────────
 
     public function testDeleteForbidden(): void

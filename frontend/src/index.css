@@ -730,6 +730,50 @@ body {
 .btn-hw-toggle:hover { background: var(--bg); opacity: 1; }
 .btn-hw-toggle.hw-active { opacity: 1; background: #fef9c3; border-color: #fde68a; color: #92400e; }
 
+/* ─── Zusammenfassung ─── */
+.btn-summary-toggle {
+  font-size: 1rem;
+  padding: .2rem .35rem;
+  line-height: 1;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 6px;
+  opacity: .6;
+}
+.btn-summary-toggle:hover { background: var(--bg); opacity: 1; }
+.btn-summary-toggle.summary-active { opacity: 1; background: #e0f2fe; border-color: #bae6fd; color: #0369a1; }
+
+.summary-editor-section {
+  padding: .75rem 1rem;
+  border-top: 1px solid var(--border);
+  background: #f8fafc;
+}
+.summary-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: .5rem .75rem;
+  font-size: .9rem;
+  font-family: inherit;
+  resize: vertical;
+  background: #fff;
+  color: var(--text);
+}
+.summary-textarea:focus { outline: none; border-color: var(--accent); }
+.summary-actions {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-top: .5rem;
+}
+.btn-save-summary {
+  padding: .35rem .9rem;
+  font-size: .85rem;
+}
+.summary-saved-hint { font-size: .82rem; color: #16a34a; }
+.summary-error-hint { font-size: .82rem; color: var(--danger); }
+
 /* ─── Lightbox ─── */
 .lightbox-overlay {
   position: fixed;

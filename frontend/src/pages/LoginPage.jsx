@@ -32,7 +32,7 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1>同声</h1>
+        <h1>童声</h1>
         <p className="login-subtitle">{t('login.subtitle')}</p>
         <form onSubmit={handleSubmit}>
           <label>{t('login.email')}

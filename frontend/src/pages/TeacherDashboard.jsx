@@ -461,6 +461,11 @@ function LessonsTab({ t, dateLocale }) {
   const [lightboxSrc, setLightboxSrc] = useState(null)
   const [listError, setListError] = useState('')
   const [wheelLessonId, setWheelLessonId] = useState(null)
+  const [summaryOpenId, setSummaryOpenId] = useState(null)
+  const [summaryDraft, setSummaryDraft] = useState('')
+  const [summarySaving, setSummarySaving] = useState(false)
+  const [summarySavedId, setSummarySavedId] = useState(null)
+  const [summarySaveError, setSummarySaveError] = useState(null)
 
   useEffect(() => {
     getLessons()
@@ -514,15 +519,29 @@ function LessonsTab({ t, dateLocale }) {
     }
   }
 
-  const handleToggleHomework = async (id, current) => {
+  const handleToggleSummary = (lesson) => {
+    if (summaryOpenId === lesson.id) {
+      setSummaryOpenId(null)
+    } else {
+      setSummaryOpenId(lesson.id)
+      setSummaryDraft(lesson.summary ?? '')
+      setSummarySavedId(null)
+      setSummarySaveError(null)
+    }
+  }
+
+  const handleSaveSummary = async (id) => {
+    setSummarySaving(true)
+    setSummarySaveError(null)
     try {
-      const updated = await patchLesson(id, { homeworkAssigned: !current })
-      setLessons(prev => prev.map(l => l.id === id ? { ...l, homeworkAssigned: updated.homeworkAssigned } : l))
-      if (!current && activeLessonId === id && !homeworkMap[id]) {
-        const data = await getHomeworkAllForLesson(id)
-        setHomeworkMap(prev => ({ ...prev, [id]: data }))
-      }
-    } catch {}
+      const updated = await patchLesson(id, { summary: summaryDraft })
+      setLessons(prev => prev.map(l => l.id === id ? { ...l, summary: updated.summary } : l))
+      setSummarySavedId(id)
+    } catch {
+      setSummarySaveError(id)
+    } finally {
+      setSummarySaving(false)
+    }
   }
 
   const handleAttendance = async (lessonId, studentId, present) => {
@@ -610,11 +629,11 @@ function LessonsTab({ t, dateLocale }) {
                     </button>
                   )}
                   <button
-                    className={`btn-icon-text btn-ghost btn-hw-toggle${l.homeworkAssigned ? ' hw-active' : ''}`}
-                    onClick={e => { e.stopPropagation(); handleToggleHomework(l.id, l.homeworkAssigned) }}
-                    title={l.homeworkAssigned ? t('teacher.homeworkAssigned') : t('teacher.homeworkNotAssigned')}
+                    className={`btn-icon-text btn-ghost btn-summary-toggle${summaryOpenId === l.id ? ' summary-active' : ''}`}
+                    onClick={e => { e.stopPropagation(); handleToggleSummary(l) }}
+                    title={t('teacher.summary')}
                   >
-                    📚
+                    📝
                   </button>
                   <button className="btn-icon btn-toggle" onClick={() => toggleLesson(l.id)} title={isActive ? t('teacher.close') : t('teacher.attendance')}>
                     <Icon name="chevron-down" size={16} style={isActive ? { transform: 'rotate(180deg)' } : {}} />
@@ -652,6 +671,29 @@ function LessonsTab({ t, dateLocale }) {
                   {attendanceError[l.id]
                     ? <p className="error">{attendanceError[l.id]}</p>
                     : <p className="empty">{t('common.loading')}</p>}
+                </div>
+              )}
+
+              {summaryOpenId === l.id && (
+                <div className="summary-editor-section">
+                  <textarea
+                    className="summary-textarea"
+                    value={summaryDraft}
+                    onChange={e => { setSummaryDraft(e.target.value); setSummarySavedId(null); setSummarySaveError(null) }}
+                    placeholder={t('teacher.summaryPlaceholder')}
+                    rows={4}
+                  />
+                  <div className="summary-actions">
+                    <button
+                      className="btn-primary btn-save-summary"
+                      onClick={() => handleSaveSummary(l.id)}
+                      disabled={summarySaving}
+                    >
+                      {summarySaving ? '…' : t('teacher.summarySave')}
+                    </button>
+                    {summarySavedId === l.id && <span className="summary-saved-hint">{t('teacher.summarySaved')} ✓</span>}
+                    {summarySaveError === l.id && <span className="summary-error-hint">{t('teacher.summarySaveError')}</span>}
+                  </div>
                 </div>
               )}
 
@@ -722,7 +764,7 @@ export default function TeacherDashboard() {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <h1>同声 <span className="role-badge"><GraduationCap size={13} /></span></h1>
+        <h1>童声 <span className="role-badge"><GraduationCap size={13} /></span></h1>
         <div className="header-right">
           <div className="locale-switcher">
             <button className={locale === 'zh' ? 'active' : ''} onClick={() => switchLocale('zh')} title="中文">🇨🇳</button>

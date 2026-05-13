@@ -101,6 +101,9 @@ class LessonController extends AbstractController
         if (array_key_exists('title', $data)) {
             $lesson->setTitle(trim($data['title'] ?? '') ?: null);
         }
+        if (array_key_exists('summary', $data)) {
+            $lesson->setSummary(trim($data['summary'] ?? '') ?: null);
+        }
 
         $em->flush();
 
@@ -228,6 +231,7 @@ class LessonController extends AbstractController
             'id'               => $l->getId(),
             'date'             => $l->getDate()->format('Y-m-d'),
             'title'            => $l->getTitle(),
+            'summary'          => $l->getSummary(),
             'presentCount'     => $presentCount,
             'totalStudents'    => $totalStudents,
             'homeworkAssigned' => $l->isHomeworkAssigned(),

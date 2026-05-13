@@ -32,6 +32,9 @@ class Lesson
     #[ORM\Column(options: ['default' => false])]
     private bool $homeworkAssigned = false;
 
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $summary = null;
+
     #[ORM\OneToMany(targetEntity: Attendance::class, mappedBy: 'lesson', cascade: ['remove'])]
     private Collection $attendances;
 
@@ -56,6 +59,9 @@ class Lesson
 
     public function isHomeworkAssigned(): bool { return $this->homeworkAssigned; }
     public function setHomeworkAssigned(bool $v): static { $this->homeworkAssigned = $v; return $this; }
+
+    public function getSummary(): ?string { return $this->summary; }
+    public function setSummary(?string $summary): static { $this->summary = $summary; return $this; }
 
     public function getAttendances(): Collection { return $this->attendances; }
 }

@@ -1,38 +1,47 @@
-# Tongsheng — Projektbeschreibung
+# 童声 — Projektbeschreibung
 
 ## Zweck
 App für Sprachaufnahmen von Kindern beim Chinesisch-Unterricht. Familienmitglieder laden täglich Aufnahmen hoch, die Lehrerin kann alles einsehen, kommentieren und die Anwesenheit verwalten.
+
+## App-Name
+童声 (Kinderstimme) — umbenannt von 同声 am 2026-05-13.
 
 ## Rollen
 
 ### Lehrerin (`teacher`)
 - Sieht alle Aufnahmen aller Familien, kann kommentieren und löschen
-- Verwaltet Familien: anlegen, löschen (Löschen cascadet alle Mitglieder + Aufnahmen)
-- Lädt Familienmitglieder per tokenbasiertem Einladungslink ein (7 Tage gültig, kein E-Mail-Versand — Link wird kopiert)
+- Verwaltet Familien und Mitglieder direkt (kein Einladungs-Workflow mehr)
 - Markiert Familienmitglieder als Schüler (`is_student`)
-- Legt Unterrichtsstunden an und pflegt die Anwesenheitsliste
+- Legt Unterrichtsstunden an, pflegt Anwesenheitsliste
+- Schreibt Zusammenfassung pro Unterrichtsstunde (📝)
 
 ### Familienmitglied (`family_member`)
 - Maximal 1 Sprachaufnahme pro Tag hochladen
 - Sieht alle Aufnahmen der eigenen Familie (`family_id`)
-- Kann kommentieren (eigene und fremde Aufnahmen der Familie)
+- Kann kommentieren, auf Kommentare reagieren (👍 ❤️ 👎)
+- Lädt Hausaufgaben-Bilder hoch
 
 ## Datenmodell
 
 ### Tabellen
 - `users` — `id, email, family_name, role, family_id, is_student, password, api_token, locale`
 - `families` — `id, name, created_at`
-- `invitations` — `id, email, role, family_id, token, invited_by, created_at, expires_at`
 - `recordings` — `id, user_id, filename, mime_type, file_size, recorded_at, delete_at`
-- `comments` — `id, recording_id, user_id, content, created_at`
-- `lessons` — `id, date, title, created_by, created_at`
+- `comments` — `id, recording_id, author_id (nullable), content, created_at`
+- `comment_reactions` — `id, comment_id, user_id, type` (unique je comment+user)
+- `lessons` — `id, date, title, summary, homework_assigned, created_by, created_at`
 - `attendance` — `id, lesson_id, student_id, present`
+- `homework_images` — `id, lesson_id, family_id, file_path, original_filename, mime_type, uploaded_at`
+- `invitations` — noch in DB, Funktion aber entfernt
 
 ### Beziehungen
 - `users.family_id → families.id ON DELETE CASCADE`
-- `invitations.family_id → families.id ON DELETE CASCADE`
+- `comments.author_id → users.id ON DELETE SET NULL`
+- `comment_reactions.(comment_id, user_id)` unique
 - `attendance.lesson_id → lessons.id ON DELETE CASCADE`
 - `attendance.student_id → users.id ON DELETE CASCADE`
+- `homework_images.lesson_id → lessons.id ON DELETE CASCADE`
+- `homework_images.family_id → families.id ON DELETE CASCADE`
 
 ### SQL-Migrationen (in phpMyAdmin auszuführen)
 - `001_initial_schema.sql` ✅
@@ -42,7 +51,10 @@ App für Sprachaufnahmen von Kindern beim Chinesisch-Unterricht. Familienmitglie
 - `005_family_member.sql` ✅
 - `006_lessons_attendance.sql` ✅
 - `007_users_eva_joshua.sql` ✅
-- `008_families_refactor.sql` — **noch ausstehend**
+- `008_families_refactor.sql` ✅
+- `009_comment_author_reactions.sql` ✅
+- `010_homework.sql` ✅
+- `011_lesson_summary.sql` ✅
 
 ## Tech Stack
 
@@ -50,25 +62,83 @@ App für Sprachaufnahmen von Kindern beim Chinesisch-Unterricht. Familienmitglie
 - PHP 8 / Symfony 8
 - MySQL mit Doctrine ORM
 - Custom `ApiTokenAuthenticator` (kein Lexik)
-- Filesystem-Storage für Audiodateien (`%app.recordings_dir%`)
+- Filesystem-Storage: `var/recordings/`, `var/homework/`
+- Apache blockt HTTP DELETE → Workaround: `POST /resource/{id}/delete`
 
 ### Frontend
-- React + Vite, PWA (autoUpdate Service Worker)
+- React + Vite, PWA mit `registerType: 'prompt'` (UpdatePrompt.jsx)
 - lucide-react für Aktionsicons
-- Mono Icons SVG (Icon.jsx) für Chevron-Toggles und Tab-Icons
 - `npm install` benötigt `--legacy-peer-deps` (vite-plugin-pwa@1.2.0 vs Vite 8)
+- Audio-Requests via Axios als Blob (kein direkter `<audio src>` wegen Auth)
+- `fix-webm-duration` korrigiert WebM-Metadaten vor Upload
+
+### Icons (PWA)
+- `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png`
+- Quell-PNGs in `Code/tongsheng-icons/` (außerhalb Repo)
+- Weiße Ränder trimmen: `magick -fuzz 5% -trim`, dann auf Quadrat mit `#5bbef5` erweitern
+
+## Features
+
+### Kommentare & Reaktionen
+- Autor + Rolle-Badge pro Kommentar
+- Reaktionen: 👍 ❤️ 👎 — toggle (same type = remove, different = change)
+- `author_id` nullable (ON DELETE SET NULL)
+
+### Hausaufgaben
+- Lehrerin sieht Einreichungen pro Familie im Unterrichts-Tab
+- Familien laden Bilder hoch (`POST /api/lessons/{id}/homework`)
+- Bilder als Blob via Axios geladen, Lightbox bei Klick
+- `homework_assigned`-Flag bleibt in DB, Toggle-Button entfernt (es gibt immer Hausaufgaben)
+- Eigener Hausaufgaben-Bereich ist geplant
+
+### Zusammenfassung (seit SQL 011)
+- Lehrerin schreibt Zusammenfassung pro Unterrichtsstunde
+- 📝-Button in Lesson-Actions → Inline-Textarea klappt auf
+- Speichern via `PATCH /api/lessons/{id}` mit `{ summary }`
+- Eltern-Ansicht folgt beim großen Umbau
+
+### Glücksrad
+- Drehdauer 3–4 Sekunden, 5–7 Umdrehungen
+
+### i18n
+- de + zh, `LocaleContext` mit `t()`-Hook, `frontend/src/i18n.js`
+- Locale per `PATCH /api/me/locale` in DB gespeichert
 
 ## Teacher-Dashboard Tabs
-1. **Aufnahmen** — gefilterte Liste aller Aufnahmen gruppiert nach Familie, Kommentarfunktion, Einladungen verwalten
-2. **Schüler** — Familien anlegen/löschen, Mitglieder als Schüler markieren
-3. **Unterricht** — Unterrichtsstunden anlegen/löschen, Anwesenheit pro Stunde erfassen
+1. **Aufnahmen** — gefilterte Liste aller Aufnahmen, Kommentarfunktion
+2. **Familien** — Familien anlegen/löschen, Mitglieder verwalten, Schüler markieren
+3. **Unterricht** — Stunden anlegen/löschen, Anwesenheit, Zusammenfassung (📝), Hausaufgaben-Einreichungen
+
+## PHPUnit Tests (172 Tests, alle grün)
+
+```bash
+cd backend
+PHP_INI_SCAN_DIR=/home/ralfk/.php/conf.d php bin/phpunit --no-coverage
+```
+
+- Test-DB: `test_tongsheng_test` (MariaDB lokal)
+- Schema wird beim ersten Run automatisch angelegt
+- Basis-Klasse: `tests/ApiTestCase.php`
+- **Regel:** Jede Backend-Änderung muss mit Test abgesichert sein
 
 ## Deployment
 - All-Inkl.com Shared Hosting (kein SSH, nur FTP/SFTP)
 - FTP-Host: `w0095185.kasserver.com`, User: `f0184253`
 - Domain: https://tongsheng.app/
-- Apache blockiert HTTP DELETE → alle Lösch-Operationen via `POST /resource/{id}/delete`
-- Nach Deployment: App komplett schließen + neu öffnen wegen PWA-Cache
+- `export TONGSHENG_FTP_PASS=... && ./deploy.sh`
+- `.env.local` per SFTP manuell hochladen
+- SQL-Migrationen in phpMyAdmin einspielen
+- Nach Deploy: PWA-Cache im Browser leeren
 
 ## Aufbewahrung
 - Aufnahmen werden nach 5 Wochen automatisch gelöscht (Cron Job + `delete_at`-Feld)
+- Cron Job auf All-Inkl.com noch nicht eingerichtet
+
+## Offene Aufgaben
+1. Cron Job auf All-Inkl.com für automatische Aufnahmen-Löschung
+2. `frontend/src/api/invitations.js` entfernen (ungenutzt)
+3. Großer Unterrichts-Umbau: eigener Hausaufgaben-Bereich, Eltern sehen Zusammenfassung
+
+## Accounts
+- Lehrerin: ysong@song-kraus.com (role: teacher, locale: zh)
+- Familie: rkraus@song-kraus.com (role: family_member, locale: de)

@@ -8,8 +8,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       manifest: {
-        name: '同声 Sprachaufnahmen',
-        short_name: '同声',
+        name: '童声 Sprachaufnahmen',
+        short_name: '童声',
         description: 'Tägliche Sprachaufnahmen für die Klasse',
         theme_color: '#4f46e5',
         background_color: '#f8f7ff',

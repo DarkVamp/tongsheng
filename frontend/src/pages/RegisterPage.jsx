@@ -51,7 +51,7 @@ export default function RegisterPage() {
     return (
       <div className="login-page">
         <div className="login-card">
-          <h1>同声</h1>
+          <h1>童声</h1>
           <p className="error">{loadError}</p>
         </div>
       </div>
@@ -62,7 +62,7 @@ export default function RegisterPage() {
     return (
       <div className="login-page">
         <div className="login-card">
-          <h1>同声</h1>
+          <h1>童声</h1>
           <p>{t('common.loading')}</p>
         </div>
       </div>
@@ -76,7 +76,7 @@ export default function RegisterPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1>同声</h1>
+        <h1>童声</h1>
         <p className="login-subtitle">{t('register.subtitle')}</p>
 
         <div className="register-info">
