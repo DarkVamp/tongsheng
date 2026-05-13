@@ -134,10 +134,22 @@ PHP_INI_SCAN_DIR=/home/ralfk/.php/conf.d php bin/phpunit --no-coverage
 - Aufnahmen werden nach 5 Wochen automatisch gelöscht (Cron Job + `delete_at`-Feld)
 - Cron Job auf All-Inkl.com noch nicht eingerichtet
 
+## Aktuelle Version
+`1.0.6` (frontend/package.json)
+
+## Laufender Umbau (begonnen 2026-05-13)
+Großer Umbau der App — schrittweise:
+- ✅ **Unterricht-Tab:** 📚-Toggle entfernt, 📝-Zusammenfassung-Button eingebaut
+- ⏳ **Hausaufgaben:** bekommt eigenen Bereich (noch offen)
+- ⏳ **Eltern sehen Zusammenfassung** im FamilyDashboard (noch offen)
+- Weitere Umbau-Schritte folgen
+
 ## Offene Aufgaben
 1. Cron Job auf All-Inkl.com für automatische Aufnahmen-Löschung
 2. `frontend/src/api/invitations.js` entfernen (ungenutzt)
-3. Großer Unterrichts-Umbau: eigener Hausaufgaben-Bereich, Eltern sehen Zusammenfassung
+3. Eigener Hausaufgaben-Bereich (neuer Tab oder eigene Seite)
+4. Eltern-Ansicht für Zusammenfassung im FamilyDashboard
+5. SQL 011 in phpMyAdmin auf Produktion einspielen (falls noch nicht done)
 
 ## Accounts
 - Lehrerin: ysong@song-kraus.com (role: teacher, locale: zh)
