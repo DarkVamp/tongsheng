@@ -29,9 +29,10 @@ App für Sprachaufnahmen von Kindern beim Chinesisch-Unterricht. Familienmitglie
 - `recordings` — `id, user_id, filename, mime_type, file_size, recorded_at, delete_at`
 - `comments` — `id, recording_id, author_id (nullable), content, created_at`
 - `comment_reactions` — `id, comment_id, user_id, type` (unique je comment+user)
-- `lessons` — `id, date, title, summary, homework_assigned, created_by, created_at`
+- `lessons` — `id, date, title, summary, homework_assigned, homework_types (JSON), created_by, created_at`
 - `attendance` — `id, lesson_id, student_id, present`
-- `homework_images` — `id, lesson_id, family_id, file_path, original_filename, mime_type, uploaded_at`
+- `homework_images` — `id, lesson_id, family_id, homework_type, file_path, original_filename, mime_type, uploaded_at`
+- `homework_audio` — `id, lesson_id, family_id, homework_type, filename, mime_type, file_size, uploaded_at`
 - `invitations` — noch in DB, Funktion aber entfernt
 
 ### Beziehungen
@@ -42,6 +43,8 @@ App für Sprachaufnahmen von Kindern beim Chinesisch-Unterricht. Familienmitglie
 - `attendance.student_id → users.id ON DELETE CASCADE`
 - `homework_images.lesson_id → lessons.id ON DELETE CASCADE`
 - `homework_images.family_id → families.id ON DELETE CASCADE`
+- `homework_audio.lesson_id → lessons.id ON DELETE CASCADE`
+- `homework_audio.family_id → families.id ON DELETE CASCADE`
 
 ### SQL-Migrationen (in phpMyAdmin auszuführen)
 - `001_initial_schema.sql` ✅
@@ -55,6 +58,8 @@ App für Sprachaufnahmen von Kindern beim Chinesisch-Unterricht. Familienmitglie
 - `009_comment_author_reactions.sql` ✅
 - `010_homework.sql` ✅
 - `011_lesson_summary.sql` ✅
+- `012_homework_types.sql` ⏳ (in phpMyAdmin einspielen)
+- `013_homework_audio.sql` ⏳ (in phpMyAdmin einspielen)
 
 ## Tech Stack
 
@@ -62,7 +67,7 @@ App für Sprachaufnahmen von Kindern beim Chinesisch-Unterricht. Familienmitglie
 - PHP 8 / Symfony 8
 - MySQL mit Doctrine ORM
 - Custom `ApiTokenAuthenticator` (kein Lexik)
-- Filesystem-Storage: `var/recordings/`, `var/homework/`
+- Filesystem-Storage: `var/recordings/`, `var/homework/`, `var/homework_audio/`
 - Apache blockt HTTP DELETE → Workaround: `POST /resource/{id}/delete`
 
 ### Frontend
@@ -85,11 +90,22 @@ App für Sprachaufnahmen von Kindern beim Chinesisch-Unterricht. Familienmitglie
 - `author_id` nullable (ON DELETE SET NULL)
 
 ### Hausaufgaben
-- Lehrerin sieht Einreichungen pro Familie im Unterrichts-Tab
-- Familien laden Bilder hoch (`POST /api/lessons/{id}/homework`)
-- Bilder als Blob via Axios geladen, Lightbox bei Klick
-- `homework_assigned`-Flag bleibt in DB, Toggle-Button entfernt (es gibt immer Hausaufgaben)
-- Eigener Hausaufgaben-Bereich ist geplant
+- Lehrerin konfiguriert Typen pro Stunde im Hausaufgaben-Tab (Toggle-Pills)
+- Hausaufgaben-Typen: `lesen` 🎙️, `schreiben` 📷, `schriftlich` 📝, `malen` 🎨, `sonstiges` 🎙️📷
+  - Foto-Typen (`schreiben`, `schriftlich`, `malen`, `sonstiges`): `POST /api/lessons/{id}/homework`
+  - Audio-Typen (`lesen`, `sonstiges`): `POST /api/lessons/{id}/homework-audio`
+- Einreichungsansicht im Hausaufgaben-Tab: pro Stunde aufklappen → nach Typ gegliedert, pro Familie Badges + Thumbnails/Audio
+- API-Endpunkte:
+  - `GET /api/lessons/latest-homework` — letzte Stunde + eigene Bilder (Familie) oder alle Familien-Einreichungen (Lehrerin)
+  - `POST /api/lessons/{id}/homework` — Bild hochladen (family_member)
+  - `GET /api/homework/{id}/image` — Bild abrufen (auth)
+  - `POST /api/homework/{id}/delete` — Bild löschen
+  - `POST /api/lessons/{id}/homework-audio` — Audio hochladen (family_member)
+  - `GET /api/homework-audio/{id}/stream` — Audio streamen (auth)
+  - `POST /api/homework-audio/{id}/delete` — Audio löschen
+  - `GET /api/lessons/{id}/homework/all` — alle Einreichungen (Bilder) pro Familie, nur Lehrerin
+  - `GET /api/lessons/{id}/homework/by-type` — nach Typ gruppiert (Bilder + Audio), nur Lehrerin
+- `homework_audio` ersetzt das alte Aufnahmen-System (recordings wird schrittweise abgelöst)
 
 ### Zusammenfassung (seit SQL 011)
 - Lehrerin schreibt Zusammenfassung pro Unterrichtsstunde
@@ -108,8 +124,9 @@ App für Sprachaufnahmen von Kindern beim Chinesisch-Unterricht. Familienmitglie
 1. **Aufnahmen** — gefilterte Liste aller Aufnahmen, Kommentarfunktion
 2. **Familien** — Familien anlegen/löschen, Mitglieder verwalten, Schüler markieren
 3. **Unterricht** — Stunden anlegen/löschen, Anwesenheit, Zusammenfassung (📝), Hausaufgaben-Einreichungen
+4. **Hausaufgaben** — pro Unterrichtsstunde konfigurieren welche Typen aufgegeben wurden (Lesen 🎙️, Schreiben 📷, Schriftlich 📝, Malen 🎨, Sonstiges 🎙️📷)
 
-## PHPUnit Tests (172 Tests, alle grün)
+## PHPUnit Tests (195 Tests, alle grün)
 
 ```bash
 cd backend
@@ -135,21 +152,26 @@ PHP_INI_SCAN_DIR=/home/ralfk/.php/conf.d php bin/phpunit --no-coverage
 - Cron Job auf All-Inkl.com noch nicht eingerichtet
 
 ## Aktuelle Version
-`1.0.6` (frontend/package.json)
+`1.1.0` (frontend/package.json)
 
 ## Laufender Umbau (begonnen 2026-05-13)
 Großer Umbau der App — schrittweise:
 - ✅ **Unterricht-Tab:** 📚-Toggle entfernt, 📝-Zusammenfassung-Button eingebaut
-- ⏳ **Hausaufgaben:** bekommt eigenen Bereich (noch offen)
+- ✅ **Hausaufgaben-Tab (Lehrer):** neuer 4. Tab — Typen konfigurieren + Einreichungsansicht (aufklappbar, nach Typ, mit Bilder/Audio)
+- ✅ **HomeworkAudio-System:** `homework_audio`-Tabelle, Controller, Tests (ersetzt Recordings)
+- ✅ **FamilyDashboard umstrukturiert:** 3 Tabs — Hausaufgaben (pro Typ mit Foto-Upload), Report (Lektionsliste mit Zusammenfassungen), Kommunikation (Placeholder)
+- ✅ **Hausaufgaben-Tab (Familie):** Audio-Aufnahme für lesen/sonstiges implementiert; latestHomework liefert jetzt auch Audio
 - ⏳ **Eltern sehen Zusammenfassung** im FamilyDashboard (noch offen)
+- ⏳ **Recordings-System abschalten** wenn homework_audio voll in Betrieb
 - Weitere Umbau-Schritte folgen
 
 ## Offene Aufgaben
 1. Cron Job auf All-Inkl.com für automatische Aufnahmen-Löschung
 2. `frontend/src/api/invitations.js` entfernen (ungenutzt)
-3. Eigener Hausaufgaben-Bereich (neuer Tab oder eigene Seite)
+3. **FamilyDashboard:** Hausaufgaben-Einreichungen pro Typ (Audio für lesen/sonstiges, Foto für Rest)
 4. Eltern-Ansicht für Zusammenfassung im FamilyDashboard
-5. SQL 011 in phpMyAdmin auf Produktion einspielen (falls noch nicht done)
+5. SQL 012 + 013 in phpMyAdmin auf Produktion einspielen
+6. Recordings-System deprecaten/entfernen sobald homework_audio produktiv
 
 ## Accounts
 - Lehrerin: ysong@song-kraus.com (role: teacher, locale: zh)

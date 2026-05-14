@@ -136,6 +136,65 @@ class LessonControllerTest extends ApiTestCase
         self::assertNull($this->responseData()[0]['summary']);
     }
 
+    public function testPatchHomeworkTypesValid(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_lpatch_hwtypes');
+        $lesson = $this->createLesson();
+
+        $this->req('PATCH', '/api/lessons/' . $lesson->getId(), ['homeworkTypes' => ['lesen', 'malen']], 'tok_lpatch_hwtypes');
+        self::assertSame(200, $this->httpStatus());
+        self::assertSame(['lesen', 'malen'], $this->responseData()['homeworkTypes']);
+    }
+
+    public function testPatchHomeworkTypesClearsWithEmptyArray(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_lpatch_hwtypes_clear');
+        $lesson = $this->createLesson();
+
+        $this->req('PATCH', '/api/lessons/' . $lesson->getId(), ['homeworkTypes' => ['lesen']], 'tok_lpatch_hwtypes_clear');
+        $this->req('PATCH', '/api/lessons/' . $lesson->getId(), ['homeworkTypes' => []], 'tok_lpatch_hwtypes_clear');
+        self::assertSame(200, $this->httpStatus());
+        self::assertSame([], $this->responseData()['homeworkTypes']);
+    }
+
+    public function testPatchHomeworkTypesInvalidType(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_lpatch_hwtypes_invalid');
+        $lesson = $this->createLesson();
+
+        $this->req('PATCH', '/api/lessons/' . $lesson->getId(), ['homeworkTypes' => ['ungueltig']], 'tok_lpatch_hwtypes_invalid');
+        self::assertSame(422, $this->httpStatus());
+    }
+
+    public function testPatchHomeworkTypesNotArray(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_lpatch_hwtypes_notarray');
+        $lesson = $this->createLesson();
+
+        $this->req('PATCH', '/api/lessons/' . $lesson->getId(), ['homeworkTypes' => 'lesen'], 'tok_lpatch_hwtypes_notarray');
+        self::assertSame(422, $this->httpStatus());
+    }
+
+    public function testHomeworkTypesInSerializedLesson(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_lpatch_hwtypes_serial');
+        $lesson = $this->createLesson();
+
+        $this->req('GET', '/api/lessons', [], 'tok_lpatch_hwtypes_serial');
+        self::assertArrayHasKey('homeworkTypes', $this->responseData()[0]);
+        self::assertSame([], $this->responseData()[0]['homeworkTypes']);
+    }
+
+    public function testPatchHomeworkTypesDeduplicated(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_lpatch_hwtypes_dedup');
+        $lesson = $this->createLesson();
+
+        $this->req('PATCH', '/api/lessons/' . $lesson->getId(), ['homeworkTypes' => ['lesen', 'lesen', 'malen']], 'tok_lpatch_hwtypes_dedup');
+        self::assertSame(200, $this->httpStatus());
+        self::assertCount(2, $this->responseData()['homeworkTypes']);
+    }
+
     // ── POST /api/lessons/{id}/delete ─────────────────────────────────────────
 
     public function testDeleteForbidden(): void

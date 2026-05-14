@@ -35,6 +35,9 @@ class Lesson
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $summary = null;
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $homeworkTypes = null;
+
     #[ORM\OneToMany(targetEntity: Attendance::class, mappedBy: 'lesson', cascade: ['remove'])]
     private Collection $attendances;
 
@@ -62,6 +65,9 @@ class Lesson
 
     public function getSummary(): ?string { return $this->summary; }
     public function setSummary(?string $summary): static { $this->summary = $summary; return $this; }
+
+    public function getHomeworkTypes(): ?array { return $this->homeworkTypes; }
+    public function setHomeworkTypes(?array $types): static { $this->homeworkTypes = $types; return $this; }
 
     public function getAttendances(): Collection { return $this->attendances; }
 }

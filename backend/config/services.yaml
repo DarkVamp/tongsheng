@@ -9,6 +9,7 @@
 parameters:
     app.recordings_dir: '%env(resolve:RECORDINGS_DIR)%'
     app.homework_dir: '%env(resolve:HOMEWORK_DIR)%'
+    app.homework_audio_dir: '%env(resolve:HOMEWORK_AUDIO_DIR)%'
 
 services:
     # default configuration for services in *this* file

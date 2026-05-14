@@ -32,6 +32,12 @@ const translations = {
     'family.micDenied': 'Mikrofon-Zugriff verweigert.',
     'family.uploadFailed': 'Upload fehlgeschlagen.',
     'family.deleteFailed': 'Löschen fehlgeschlagen.',
+    'family.tabHomework': 'Hausaufgaben',
+    'family.tabReport': 'Report',
+    'family.tabCommunication': 'Kommunikation',
+    'family.noLessons': 'Noch keine Unterrichtsstunden vorhanden.',
+    'family.noSummary': 'Noch keine Zusammenfassung.',
+    'family.communicationComingSoon': 'Wird bald freigeschaltet.',
 
     // Teacher Dashboard
     'teacher.badge': 'Lehrerin',
@@ -50,6 +56,7 @@ const translations = {
     'teacher.tabRecordings': 'Aufnahmen',
     'teacher.tabStudents': 'Familien',
     'teacher.tabLessons': 'Unterricht',
+    'teacher.tabHomework': 'Hausaufgaben',
 
     // Familien-Verwaltung
     'teacher.createFamily': 'Familie anlegen',
@@ -147,6 +154,14 @@ const translations = {
     'teacher.homeworkAssigned': 'HA zugewiesen',
     'teacher.homeworkNotAssigned': 'Keine HA',
     'teacher.homeworkTitle': 'Hausaufgaben',
+    'teacher.hwNoLessons': 'Noch keine Unterrichtsstunden vorhanden.',
+    'homework.type.lesen': 'Lesen',
+    'homework.type.schreiben': 'Schreiben',
+    'homework.type.schriftlich': 'Schriftlich',
+    'homework.type.malen': 'Malen',
+    'homework.type.sonstiges': 'Sonstiges',
+    'homework.submissions': 'Einreichungen',
+    'homework.audioComingSoon': 'Audioaufnahme — folgt demnächst.',
 
     // Update-Banner
     'update.available': 'Neue Version verfügbar',
@@ -189,6 +204,12 @@ const translations = {
     'family.micDenied': '麦克风访问被拒绝。',
     'family.uploadFailed': '上传失败。',
     'family.deleteFailed': '删除失败。',
+    'family.tabHomework': '家庭作业',
+    'family.tabReport': '课程报告',
+    'family.tabCommunication': '沟通',
+    'family.noLessons': '暂无课程。',
+    'family.noSummary': '暂无总结。',
+    'family.communicationComingSoon': '即将推出。',
 
     // Teacher Dashboard
     'teacher.badge': '老师',
@@ -207,6 +228,7 @@ const translations = {
     'teacher.tabRecordings': '录音',
     'teacher.tabStudents': '家庭',
     'teacher.tabLessons': '课程',
+    'teacher.tabHomework': '家庭作业',
 
     // 家庭管理
     'teacher.createFamily': '创建家庭',
@@ -304,6 +326,14 @@ const translations = {
     'teacher.homeworkAssigned': '已布置作业',
     'teacher.homeworkNotAssigned': '未布置作业',
     'teacher.homeworkTitle': '家庭作业',
+    'teacher.hwNoLessons': '暂无课程。',
+    'homework.type.lesen': '阅读',
+    'homework.type.schreiben': '写字',
+    'homework.type.schriftlich': '笔头练习',
+    'homework.type.malen': '绘画',
+    'homework.type.sonstiges': '其他',
+    'homework.submissions': '提交情况',
+    'homework.audioComingSoon': '录音功能即将推出。',
 
     // Update-Banner
     'update.available': '有新版本可用',

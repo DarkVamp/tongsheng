@@ -72,6 +72,8 @@ class LessonController extends AbstractController
         return $this->json($this->serializeLesson($lesson, 0, 0), Response::HTTP_CREATED);
     }
 
+    private const VALID_HOMEWORK_TYPES = ['lesen', 'schreiben', 'schriftlich', 'malen', 'sonstiges'];
+
     // ── Unterrichtsstunde aktualisieren (homeworkAssigned, title) ────────────
 
     #[Route('/{id}', methods: ['PATCH'])]
@@ -103,6 +105,18 @@ class LessonController extends AbstractController
         }
         if (array_key_exists('summary', $data)) {
             $lesson->setSummary(trim($data['summary'] ?? '') ?: null);
+        }
+        if (array_key_exists('homeworkTypes', $data)) {
+            $types = $data['homeworkTypes'];
+            if (!is_array($types)) {
+                return $this->json(['error' => 'homeworkTypes must be an array.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            $invalid = array_diff($types, self::VALID_HOMEWORK_TYPES);
+            if (!empty($invalid)) {
+                return $this->json(['error' => 'Invalid homework types: ' . implode(', ', $invalid)], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            $normalized = array_values(array_unique($types));
+            $lesson->setHomeworkTypes(empty($normalized) ? null : $normalized);
         }
 
         $em->flush();
@@ -235,6 +249,7 @@ class LessonController extends AbstractController
             'presentCount'     => $presentCount,
             'totalStudents'    => $totalStudents,
             'homeworkAssigned' => $l->isHomeworkAssigned(),
+            'homeworkTypes'    => $l->getHomeworkTypes() ?? [],
         ];
     }
 }

@@ -2,9 +2,11 @@
 
 namespace App\Controller\Api;
 
+use App\Entity\HomeworkAudio;
 use App\Entity\HomeworkImage;
 use App\Entity\User;
 use App\Repository\FamilyRepository;
+use App\Repository\HomeworkAudioRepository;
 use App\Repository\HomeworkImageRepository;
 use App\Repository\LessonRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,6 +25,7 @@ class HomeworkImageController extends AbstractController
         'image/gif', 'image/webp', 'image/heic', 'image/heif',
     ];
     private const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
+    private const PHOTO_TYPES   = ['schreiben', 'schriftlich', 'malen', 'sonstiges'];
 
     public function __construct(
         #[Autowire('%app.homework_dir%')]
@@ -30,12 +33,12 @@ class HomeworkImageController extends AbstractController
     ) {}
 
     // ── Letzte Stunde mit Hausaufgaben + eigene Bilder ───────────────────────
-    // Wird von Familie UND Lehrerin genutzt (unterschiedliche Sicht)
 
     #[Route('/api/lessons/latest-homework', methods: ['GET'])]
     public function latestHomework(
         LessonRepository $lessonRepo,
         HomeworkImageRepository $imageRepo,
+        HomeworkAudioRepository $audioRepo,
         FamilyRepository $familyRepo
     ): JsonResponse {
         /** @var User $user */
@@ -74,10 +77,12 @@ class HomeworkImageController extends AbstractController
         }
 
         $images = $imageRepo->findByLessonAndFamily($lesson, $family);
+        $audio  = $audioRepo->findByLessonAndFamily($lesson, $family);
 
         return $this->json([
             'lesson' => $lessonData,
             'images' => array_map($this->serializeImage(...), $images),
+            'audio'  => array_map($this->serializeAudio(...), $audio),
         ]);
     }
 
@@ -107,8 +112,14 @@ class HomeworkImageController extends AbstractController
             return $this->json(['error' => 'Lesson not found.'], Response::HTTP_NOT_FOUND);
         }
 
-        if (!$lesson->isHomeworkAssigned()) {
-            return $this->json(['error' => 'No homework assigned for this lesson.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        $hwType = trim($request->request->get('homework_type', ''));
+        if (!in_array($hwType, self::PHOTO_TYPES, true)) {
+            return $this->json(['error' => 'Invalid or missing homework_type.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $assignedTypes = $lesson->getHomeworkTypes() ?? [];
+        if (!in_array($hwType, $assignedTypes, true)) {
+            return $this->json(['error' => 'This homework type is not assigned for this lesson.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $file = $request->files->get('image');
@@ -143,6 +154,7 @@ class HomeworkImageController extends AbstractController
         $image = new HomeworkImage();
         $image->setLesson($lesson)
               ->setFamily($family)
+              ->setHomeworkType($hwType)
               ->setFilePath($filename)
               ->setOriginalFilename($file->getClientOriginalName() ?: $filename)
               ->setMimeType($mimeType);
@@ -246,6 +258,68 @@ class HomeworkImageController extends AbstractController
         ]);
     }
 
+    // ── Einreichungen nach Typ gruppiert (nur Lehrerin) ──────────────────────
+
+    #[Route('/api/lessons/{lessonId}/homework/by-type', methods: ['GET'])]
+    public function byType(
+        int $lessonId,
+        LessonRepository $lessonRepo,
+        HomeworkImageRepository $imageRepo,
+        HomeworkAudioRepository $audioRepo,
+        FamilyRepository $familyRepo
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (!$user->isTeacher()) {
+            return $this->json(['error' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $lesson = $lessonRepo->find($lessonId);
+        if (!$lesson) {
+            return $this->json(['error' => 'Lesson not found.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $types       = $lesson->getHomeworkTypes() ?? [];
+        $allFamilies = $familyRepo->findBy([], ['name' => 'ASC']);
+        $allImages   = $imageRepo->findByLesson($lesson);
+        $allAudio    = $audioRepo->findByLesson($lesson);
+
+        // Index by [type][familyId]
+        $imagesByTypeFam = [];
+        foreach ($allImages as $img) {
+            $imagesByTypeFam[$img->getHomeworkType()][$img->getFamily()->getId()][] = $this->serializeImage($img);
+        }
+
+        $audioByTypeFam = [];
+        foreach ($allAudio as $a) {
+            $audioByTypeFam[$a->getHomeworkType()][$a->getFamily()->getId()][] = $this->serializeAudio($a);
+        }
+
+        $byType = [];
+        foreach ($types as $type) {
+            $families = array_map(function ($f) use ($type, $imagesByTypeFam, $audioByTypeFam) {
+                $fid    = $f->getId();
+                $images = $imagesByTypeFam[$type][$fid] ?? [];
+                $audio  = $audioByTypeFam[$type][$fid] ?? [];
+                return [
+                    'id'        => $fid,
+                    'name'      => $f->getName(),
+                    'images'    => $images,
+                    'audio'     => $audio,
+                    'submitted' => !empty($images) || !empty($audio),
+                ];
+            }, $allFamilies);
+
+            $byType[$type] = ['families' => $families];
+        }
+
+        return $this->json([
+            'lesson' => $this->serializeLesson($lesson),
+            'byType' => $byType,
+        ]);
+    }
+
     // ── Hilfsmethoden ────────────────────────────────────────────────────────
 
     private function canAccessImage(User $user, HomeworkImage $image): bool
@@ -269,6 +343,7 @@ class HomeworkImageController extends AbstractController
             'date'             => $l->getDate()->format('Y-m-d'),
             'title'            => $l->getTitle(),
             'homeworkAssigned' => $l->isHomeworkAssigned(),
+            'homeworkTypes'    => $l->getHomeworkTypes() ?? [],
         ];
     }
 
@@ -276,11 +351,25 @@ class HomeworkImageController extends AbstractController
     {
         return [
             'id'               => $img->getId(),
+            'homeworkType'     => $img->getHomeworkType(),
             'originalFilename' => $img->getOriginalFilename(),
             'mimeType'         => $img->getMimeType(),
             'uploadedAt'       => $img->getUploadedAt()->format(\DateTimeInterface::ATOM),
             'familyId'         => $img->getFamily()->getId(),
             'familyName'       => $img->getFamily()->getName(),
+        ];
+    }
+
+    private function serializeAudio(HomeworkAudio $a): array
+    {
+        return [
+            'id'           => $a->getId(),
+            'homeworkType' => $a->getHomeworkType(),
+            'mimeType'     => $a->getMimeType(),
+            'fileSize'     => $a->getFileSize(),
+            'uploadedAt'   => $a->getUploadedAt()->format(\DateTimeInterface::ATOM),
+            'familyId'     => $a->getFamily()->getId(),
+            'familyName'   => $a->getFamily()->getName(),
         ];
     }
 }

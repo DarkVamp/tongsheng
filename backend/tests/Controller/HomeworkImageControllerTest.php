@@ -25,14 +25,33 @@ class HomeworkImageControllerTest extends ApiTestCase
         return new UploadedFile($tmp, 'test.txt', 'text/plain', null, true);
     }
 
+    private function persistHomeworkAudioForImageTest(
+        \App\Entity\Lesson $lesson,
+        \App\Entity\Family $family,
+        string $hwType = 'lesen'
+    ): \App\Entity\HomeworkAudio {
+        $audio = new \App\Entity\HomeworkAudio();
+        $audio->setLesson($lesson)
+              ->setFamily($family)
+              ->setHomeworkType($hwType)
+              ->setFilename('test_audio.webm')
+              ->setMimeType('audio/webm')
+              ->setFileSize(1024);
+        $this->em->persist($audio);
+        $this->em->flush();
+        return $audio;
+    }
+
     private function persistHomeworkImage(
         \App\Entity\Lesson $lesson,
         \App\Entity\Family $family,
-        string $filename = 'test_img.png'
+        string $filename = 'test_img.png',
+        string $hwType = 'schreiben'
     ): HomeworkImage {
         $img = new HomeworkImage();
         $img->setLesson($lesson)
             ->setFamily($family)
+            ->setHomeworkType($hwType)
             ->setFilePath($filename)
             ->setOriginalFilename('photo.png')
             ->setMimeType('image/png');
@@ -63,14 +82,16 @@ class HomeworkImageControllerTest extends ApiTestCase
         $this->createTeacher('t@t.com', 'tok_lh_fm_empty_t');
         $family  = $this->createFamily('Muster');
         $this->createMember($family, 'm@t.com', 'tok_lh_fm_empty');
-        $this->createLesson('2025-06-01', null, true);
+        $this->createLesson('2025-06-01', null, true, ['schreiben']);
 
         $this->req('GET', '/api/lessons/latest-homework', [], 'tok_lh_fm_empty');
         self::assertSame(200, $this->httpStatus());
         $data = $this->responseData();
         self::assertArrayHasKey('lesson', $data);
         self::assertArrayHasKey('images', $data);
+        self::assertArrayHasKey('audio', $data);
         self::assertSame([], $data['images']);
+        self::assertSame([], $data['audio']);
         self::assertTrue($data['lesson']['homeworkAssigned']);
     }
 
@@ -79,21 +100,39 @@ class HomeworkImageControllerTest extends ApiTestCase
         $this->createTeacher('t@t.com', 'tok_lh_fm_imgs_t');
         $family  = $this->createFamily('Muster');
         $this->createMember($family, 'm@t.com', 'tok_lh_fm_imgs');
-        $lesson  = $this->createLesson('2025-06-01', null, true);
+        $lesson  = $this->createLesson('2025-06-01', null, true, ['schreiben']);
         $this->persistHomeworkImage($lesson, $family);
 
         $this->req('GET', '/api/lessons/latest-homework', [], 'tok_lh_fm_imgs');
         self::assertSame(200, $this->httpStatus());
         $data = $this->responseData();
+        self::assertArrayHasKey('audio', $data);
+        self::assertSame([], $data['audio']);
         self::assertCount(1, $data['images']);
         self::assertSame('photo.png', $data['images'][0]['originalFilename']);
+    }
+
+    public function testLatestHomeworkAsFamilyWithAudio(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_lh_fm_aud_t');
+        $family  = $this->createFamily('Muster');
+        $this->createMember($family, 'm@t.com', 'tok_lh_fm_aud');
+        $lesson  = $this->createLesson('2025-06-01', null, true, ['lesen']);
+        $this->persistHomeworkAudioForImageTest($lesson, $family);
+
+        $this->req('GET', '/api/lessons/latest-homework', [], 'tok_lh_fm_aud');
+        self::assertSame(200, $this->httpStatus());
+        $data = $this->responseData();
+        self::assertSame([], $data['images']);
+        self::assertCount(1, $data['audio']);
+        self::assertSame('lesen', $data['audio'][0]['homeworkType']);
     }
 
     public function testLatestHomeworkAsTeacher(): void
     {
         $this->createTeacher('t@t.com', 'tok_lh_teacher');
         $family = $this->createFamily('Muster');
-        $lesson = $this->createLesson('2025-06-01', null, true);
+        $lesson = $this->createLesson('2025-06-01', null, true, ['schreiben']);
 
         $this->req('GET', '/api/lessons/latest-homework', [], 'tok_lh_teacher');
         self::assertSame(200, $this->httpStatus());
@@ -110,8 +149,8 @@ class HomeworkImageControllerTest extends ApiTestCase
     public function testUploadForbiddenForTeacher(): void
     {
         $this->createTeacher('t@t.com', 'tok_hwup_teacher');
-        $lesson = $this->createLesson('2025-06-01', null, true);
-        $this->req('POST', '/api/lessons/' . $lesson->getId() . '/homework', [], 'tok_hwup_teacher', ['image' => $this->makeImageFile()]);
+        $lesson = $this->createLesson('2025-06-01', null, true, ['schreiben']);
+        $this->req('POST', '/api/lessons/' . $lesson->getId() . '/homework', [], 'tok_hwup_teacher', ['image' => $this->makeImageFile()], ['homework_type' => 'schreiben']);
         self::assertSame(403, $this->httpStatus());
     }
 
@@ -120,17 +159,27 @@ class HomeworkImageControllerTest extends ApiTestCase
         $this->createTeacher('t@t.com', 'tok_hwup_nf_t');
         $family = $this->createFamily();
         $this->createMember($family, 'm@t.com', 'tok_hwup_nf');
-        $this->req('POST', '/api/lessons/99999/homework', [], 'tok_hwup_nf', ['image' => $this->makeImageFile()]);
+        $this->req('POST', '/api/lessons/99999/homework', [], 'tok_hwup_nf', ['image' => $this->makeImageFile()], ['homework_type' => 'schreiben']);
         self::assertSame(404, $this->httpStatus());
     }
 
-    public function testUploadNoHomeworkAssigned(): void
+    public function testUploadTypeNotAssignedForLesson(): void
     {
         $this->createTeacher('t@t.com', 'tok_hwup_nohw_t');
         $family = $this->createFamily();
         $this->createMember($family, 'm@t.com', 'tok_hwup_nohw');
-        $lesson = $this->createLesson('2025-06-01', null, false);
-        $this->req('POST', '/api/lessons/' . $lesson->getId() . '/homework', [], 'tok_hwup_nohw', ['image' => $this->makeImageFile()]);
+        $lesson = $this->createLesson('2025-06-01', null, false); // homeworkTypes = null
+        $this->req('POST', '/api/lessons/' . $lesson->getId() . '/homework', [], 'tok_hwup_nohw', ['image' => $this->makeImageFile()], ['homework_type' => 'schreiben']);
+        self::assertSame(422, $this->httpStatus());
+    }
+
+    public function testUploadMissingHomeworkType(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_hwup_notype_t');
+        $family = $this->createFamily();
+        $this->createMember($family, 'm@t.com', 'tok_hwup_notype');
+        $lesson = $this->createLesson('2025-06-01', null, true, ['schreiben']);
+        $this->req('POST', '/api/lessons/' . $lesson->getId() . '/homework', [], 'tok_hwup_notype', ['image' => $this->makeImageFile()]);
         self::assertSame(422, $this->httpStatus());
     }
 
@@ -139,8 +188,8 @@ class HomeworkImageControllerTest extends ApiTestCase
         $this->createTeacher('t@t.com', 'tok_hwup_nofile_t');
         $family = $this->createFamily();
         $this->createMember($family, 'm@t.com', 'tok_hwup_nofile');
-        $lesson = $this->createLesson('2025-06-01', null, true);
-        $this->req('POST', '/api/lessons/' . $lesson->getId() . '/homework', [], 'tok_hwup_nofile');
+        $lesson = $this->createLesson('2025-06-01', null, true, ['schreiben']);
+        $this->req('POST', '/api/lessons/' . $lesson->getId() . '/homework', [], 'tok_hwup_nofile', [], ['homework_type' => 'schreiben']);
         self::assertSame(400, $this->httpStatus());
     }
 
@@ -149,8 +198,8 @@ class HomeworkImageControllerTest extends ApiTestCase
         $this->createTeacher('t@t.com', 'tok_hwup_inv_t');
         $family = $this->createFamily();
         $this->createMember($family, 'm@t.com', 'tok_hwup_inv');
-        $lesson = $this->createLesson('2025-06-01', null, true);
-        $this->req('POST', '/api/lessons/' . $lesson->getId() . '/homework', [], 'tok_hwup_inv', ['image' => $this->makeInvalidFile()]);
+        $lesson = $this->createLesson('2025-06-01', null, true, ['schreiben']);
+        $this->req('POST', '/api/lessons/' . $lesson->getId() . '/homework', [], 'tok_hwup_inv', ['image' => $this->makeInvalidFile()], ['homework_type' => 'schreiben']);
         self::assertSame(422, $this->httpStatus());
     }
 
@@ -159,15 +208,16 @@ class HomeworkImageControllerTest extends ApiTestCase
         $this->createTeacher('t@t.com', 'tok_hwup_ok_t');
         $family = $this->createFamily('Muster');
         $this->createMember($family, 'm@t.com', 'tok_hwup_ok');
-        $lesson = $this->createLesson('2025-06-01', null, true);
+        $lesson = $this->createLesson('2025-06-01', null, true, ['schreiben']);
 
-        $this->req('POST', '/api/lessons/' . $lesson->getId() . '/homework', [], 'tok_hwup_ok', ['image' => $this->makeImageFile()]);
+        $this->req('POST', '/api/lessons/' . $lesson->getId() . '/homework', [], 'tok_hwup_ok', ['image' => $this->makeImageFile()], ['homework_type' => 'schreiben']);
         self::assertSame(201, $this->httpStatus());
         $data = $this->responseData();
         self::assertArrayHasKey('id', $data);
         self::assertSame('image/png', $data['mimeType']);
         self::assertSame('Muster', $data['familyName']);
         self::assertSame('test.png', $data['originalFilename']);
+        self::assertSame('schreiben', $data['homeworkType']);
     }
 
     // ── GET /api/homework/{id}/image ──────────────────────────────────────────
@@ -185,7 +235,7 @@ class HomeworkImageControllerTest extends ApiTestCase
         $family1 = $this->createFamily('F1');
         $family2 = $this->createFamily('F2');
         $this->createMember($family2, 'm2@t.com', 'tok_hwserve_wf');
-        $lesson  = $this->createLesson('2025-06-01', null, true);
+        $lesson  = $this->createLesson('2025-06-01', null, true, ['schreiben']);
         $img     = $this->persistHomeworkImage($lesson, $family1, 'img_wf.png');
 
         $this->req('GET', '/api/homework/' . $img->getId() . '/image', [], 'tok_hwserve_wf');
@@ -197,7 +247,7 @@ class HomeworkImageControllerTest extends ApiTestCase
         $this->createTeacher('t@t.com', 'tok_hwserve_ok_t');
         $family = $this->createFamily('Muster');
         $this->createMember($family, 'm@t.com', 'tok_hwserve_ok');
-        $lesson = $this->createLesson('2025-06-01', null, true);
+        $lesson = $this->createLesson('2025-06-01', null, true, ['schreiben']);
         $img    = $this->persistHomeworkImage($lesson, $family, 'img_ok.png');
 
         $this->req('GET', '/api/homework/' . $img->getId() . '/image', [], 'tok_hwserve_ok');
@@ -208,7 +258,7 @@ class HomeworkImageControllerTest extends ApiTestCase
     {
         $this->createTeacher('t@t.com', 'tok_hwserve_teacher');
         $family = $this->createFamily('Muster');
-        $lesson = $this->createLesson('2025-06-01', null, true);
+        $lesson = $this->createLesson('2025-06-01', null, true, ['schreiben']);
         $img    = $this->persistHomeworkImage($lesson, $family, 'img_teacher.png');
 
         $this->req('GET', '/api/homework/' . $img->getId() . '/image', [], 'tok_hwserve_teacher');
@@ -230,7 +280,7 @@ class HomeworkImageControllerTest extends ApiTestCase
         $family1 = $this->createFamily('F1');
         $family2 = $this->createFamily('F2');
         $this->createMember($family2, 'm2@t.com', 'tok_hwdel_wf');
-        $lesson  = $this->createLesson('2025-06-01', null, true);
+        $lesson  = $this->createLesson('2025-06-01', null, true, ['schreiben']);
         $img     = $this->persistHomeworkImage($lesson, $family1, 'img_del_wf.png');
 
         $this->req('POST', '/api/homework/' . $img->getId() . '/delete', [], 'tok_hwdel_wf');
@@ -242,7 +292,7 @@ class HomeworkImageControllerTest extends ApiTestCase
         $this->createTeacher('t@t.com', 'tok_hwdel_ok_t');
         $family = $this->createFamily('Muster');
         $this->createMember($family, 'm@t.com', 'tok_hwdel_ok');
-        $lesson = $this->createLesson('2025-06-01', null, true);
+        $lesson = $this->createLesson('2025-06-01', null, true, ['schreiben']);
         $img    = $this->persistHomeworkImage($lesson, $family, 'img_del_ok.png');
 
         $this->req('POST', '/api/homework/' . $img->getId() . '/delete', [], 'tok_hwdel_ok');
@@ -254,7 +304,7 @@ class HomeworkImageControllerTest extends ApiTestCase
     {
         $this->createTeacher('t@t.com', 'tok_hwdel_teacher');
         $family = $this->createFamily('Muster');
-        $lesson = $this->createLesson('2025-06-01', null, true);
+        $lesson = $this->createLesson('2025-06-01', null, true, ['schreiben']);
         $img    = $this->persistHomeworkImage($lesson, $family, 'img_del_teacher.png');
 
         $this->req('POST', '/api/homework/' . $img->getId() . '/delete', [], 'tok_hwdel_teacher');
@@ -283,7 +333,7 @@ class HomeworkImageControllerTest extends ApiTestCase
         $this->createTeacher('t@t.com', 'tok_hwall_ok');
         $family1 = $this->createFamily('Alpha');
         $family2 = $this->createFamily('Beta');
-        $lesson  = $this->createLesson('2025-06-01', null, true);
+        $lesson  = $this->createLesson('2025-06-01', null, true, ['schreiben']);
         $this->persistHomeworkImage($lesson, $family1, 'img_all_alpha.png');
 
         $this->req('GET', '/api/lessons/' . $lesson->getId() . '/homework/all', [], 'tok_hwall_ok');

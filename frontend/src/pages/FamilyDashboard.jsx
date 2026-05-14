@@ -1,13 +1,27 @@
 import { useState, useEffect, useRef } from 'react'
 import fixWebmDuration from 'fix-webm-duration'
-import { Mic, StopCircle, Upload, Trash2, LogOut, Send } from 'lucide-react'
-import Icon from '../components/Icon'
-import { getRecordings, uploadRecording, deleteRecording, fetchAudioBlob, getComments, addComment, reactToComment } from '../api/recordings'
-import { getLatestHomework, uploadHomeworkImage, deleteHomeworkImage, fetchHomeworkImageBlob } from '../api/homework'
+import { Upload, Trash2, LogOut, Mic, StopCircle } from 'lucide-react'
+import {
+  getLatestHomework,
+  uploadHomeworkImage, deleteHomeworkImage, fetchHomeworkImageBlob,
+  uploadHomeworkAudio, deleteHomeworkAudio, fetchHomeworkAudioBlob,
+} from '../api/homework'
+import { getLessons } from '../api/lessons'
 import { logout, updateLocale } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
 import { useLocale } from '../context/LocaleContext'
 import { useNavigate } from 'react-router-dom'
+
+const PHOTO_TYPES = ['schreiben', 'schriftlich', 'malen', 'sonstiges']
+const AUDIO_TYPES = ['lesen', 'sonstiges']
+
+const HW_TYPE_ICONS = {
+  lesen: '🎙️',
+  schreiben: '📷',
+  schriftlich: '📝',
+  malen: '🎨',
+  sonstiges: '🎙️📷',
+}
 
 function AuthImage({ id, alt, className, onZoom }) {
   const [src, setSrc] = useState(null)
@@ -28,6 +42,18 @@ function AuthImage({ id, alt, className, onZoom }) {
   )
 }
 
+function AuthHomeworkAudio({ id, className }) {
+  const [src, setSrc] = useState(null)
+  const { t } = useLocale()
+  useEffect(() => {
+    let url
+    fetchHomeworkAudioBlob(id).then(u => { url = u; setSrc(u) })
+    return () => { if (url) URL.revokeObjectURL(url) }
+  }, [id])
+  if (!src) return <span className="audio-loading">{t('common.loading')}</span>
+  return <audio controls src={src} className={className} />
+}
+
 function Lightbox({ src, onClose }) {
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
@@ -42,62 +68,69 @@ function Lightbox({ src, onClose }) {
   )
 }
 
-function AuthAudio({ id, className }) {
-  const [src, setSrc] = useState(null)
+// ── Report Tab ─────────────────────────────────────────────────────────────
+
+function ReportSection({ t, dateLocale }) {
+  const [lessons, setLessons] = useState([])
+  const [loaded, setLoaded] = useState(false)
+
   useEffect(() => {
-    let url
-    fetchAudioBlob(id).then((u) => { url = u; setSrc(u) })
-    return () => { if (url) URL.revokeObjectURL(url) }
-  }, [id])
-  const { t } = useLocale()
-  if (!src) return <span className="audio-loading">{t('common.loading')}</span>
-  return <audio controls src={src} className={className} />
+    getLessons().then(data => { setLessons(data); setLoaded(true) })
+  }, [])
+
+  const formatDate = (dateStr) => {
+    const [y, m, d] = dateStr.split('-')
+    return new Date(+y, +m - 1, +d).toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  }
+
+  if (!loaded) return <p className="empty">{t('common.loading')}</p>
+  if (lessons.length === 0) return <p className="empty">{t('family.noLessons')}</p>
+
+  return (
+    <ul className="report-lesson-list">
+      {lessons.map(l => (
+        <li key={l.id} className="report-lesson-item">
+          <div className="report-lesson-meta">
+            <span className="report-lesson-date">{formatDate(l.date)}</span>
+            {l.title && <span className="report-lesson-title">{l.title}</span>}
+          </div>
+          {l.summary
+            ? <p className="report-summary">{l.summary}</p>
+            : <p className="report-no-summary">{t('family.noSummary')}</p>
+          }
+        </li>
+      ))}
+    </ul>
+  )
 }
 
-export default function FamilyDashboard() {
-  const { user, signOut } = useAuth()
-  const { locale, setLocale, t } = useLocale()
-  const navigate = useNavigate()
-  const [recordings, setRecordings] = useState([])
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState('')
-  const [deleteError, setDeleteError] = useState('')
-  const [recording, setRecording] = useState(false)
-  const [activeId, setActiveId] = useState(null)
-  const [comments, setComments] = useState({})
-  const [newComment, setNewComment] = useState({})
-  const [submitting, setSubmitting] = useState(false)
+// ── Hausaufgaben Tab ───────────────────────────────────────────────────────
+
+function HomeworkSection({ t, dateLocale }) {
   const [homeworkData, setHomeworkData] = useState(undefined)
-  const [hwUploading, setHwUploading] = useState(false)
-  const [hwError, setHwError] = useState('')
+  const [imgUploading, setImgUploading] = useState({})
+  const [audioUploading, setAudioUploading] = useState({})
+  const [recordingType, setRecordingType] = useState(null)
+  const [uploadError, setUploadError] = useState('')
   const [lightboxSrc, setLightboxSrc] = useState(null)
   const mediaRecorderRef = useRef(null)
   const chunksRef = useRef([])
   const recordingStartRef = useRef(null)
 
-  const hasUploadedToday = recordings.some(r => {
-    if (r.uploaderId !== undefined && r.uploaderId !== null) {
-      if (r.uploaderId !== (user?.id ?? -1)) return false
-    }
-    const d = new Date(r.recordedAt)
-    return d.toDateString() === new Date().toDateString()
-  })
-
   useEffect(() => {
-    getRecordings().then(setRecordings)
     getLatestHomework().then(d => setHomeworkData(d)).catch(() => setHomeworkData(null))
+    return () => {
+      if (mediaRecorderRef.current?.state === 'recording') {
+        mediaRecorderRef.current.stop()
+      }
+    }
   }, [])
 
-  const switchLocale = async (l) => {
-    setLocale(l)
-    await updateLocale(l).catch(() => {})
-  }
-
-  const startRecording = async () => {
+  const startRecording = async (type) => {
     setUploadError('')
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mimeType = ['audio/webm', 'audio/mp4', 'audio/ogg'].find(t => MediaRecorder.isTypeSupported(t)) || ''
+      const mimeType = ['audio/webm', 'audio/mp4', 'audio/ogg'].find(m => MediaRecorder.isTypeSupported(m)) || ''
       const mr = new MediaRecorder(stream, mimeType ? { mimeType } : {})
       mediaRecorderRef.current = mr
       chunksRef.current = []
@@ -105,131 +138,215 @@ export default function FamilyDashboard() {
       mr.onstop = () => stream.getTracks().forEach(t => t.stop())
       mr.start()
       recordingStartRef.current = Date.now()
-      setRecording(true)
+      setRecordingType(type)
     } catch {
       setUploadError(t('family.micDenied'))
     }
   }
 
-  const stopAndUpload = async () => {
+  const stopAndUpload = async (lessonId, type) => {
     const mr = mediaRecorderRef.current
-    if (!mr) return
+    if (!mr || mr.state !== 'recording') return
     const duration = recordingStartRef.current ? Date.now() - recordingStartRef.current : undefined
-    mr.stop()
-    setRecording(false)
-    await new Promise(r => setTimeout(r, 300))
-    const type = mr.mimeType || 'audio/webm'
-    const ext = type.includes('mp4') ? 'mp4' : type.includes('ogg') ? 'ogg' : 'webm'
-    let blob = new Blob(chunksRef.current, { type })
-    if (type.includes('webm') && duration) {
-      blob = await fixWebmDuration(blob, duration, { logger: false })
-    }
-    const file = new File([blob], `aufnahme.${ext}`, { type })
-    await doUpload(file)
-  }
 
-  const handleFileInput = (e) => {
-    const file = e.target.files[0]
-    if (file) doUpload(file)
-  }
-
-  const doUpload = async (file) => {
-    setUploading(true)
+    setRecordingType(null)
+    setAudioUploading(prev => ({ ...prev, [type]: true }))
     setUploadError('')
+
     try {
-      const rec = await uploadRecording(file)
-      setRecordings(prev => [rec, ...prev])
+      // wait for the stop event — guarantees ondataavailable has fired
+      await new Promise(resolve => {
+        mr.addEventListener('stop', resolve, { once: true })
+        mr.stop()
+      })
+
+      const mType = mr.mimeType || 'audio/webm'
+      const ext = mType.includes('mp4') ? 'mp4' : mType.includes('ogg') ? 'ogg' : 'webm'
+      let blob = new Blob(chunksRef.current, { type: mType })
+      if (mType.includes('webm') && duration) {
+        blob = await fixWebmDuration(blob, duration, { logger: false })
+      }
+      const file = new File([blob], `aufnahme.${ext}`, { type: mType })
+      const audio = await uploadHomeworkAudio(lessonId, file, type)
+      setHomeworkData(prev => ({ ...prev, audio: [...(prev.audio ?? []), audio] }))
     } catch (err) {
-      setUploadError(err.response?.data?.error ?? t('family.uploadFailed'))
+      setUploadError(err.response?.data?.error ?? t('homework.uploadFailed'))
     } finally {
-      setUploading(false)
+      setAudioUploading(prev => ({ ...prev, [type]: false }))
     }
   }
 
-  const handleLogout = async () => {
-    await logout().catch(() => {})
-    signOut()
-    navigate('/login')
-  }
-
-  const handleHwUpload = async (e) => {
+  const handleImgUpload = async (e, lessonId, type) => {
     const file = e.target.files[0]
     e.target.value = ''
-    if (!file || !homeworkData?.lesson) return
-    setHwUploading(true)
-    setHwError('')
+    if (!file) return
+    setImgUploading(prev => ({ ...prev, [type]: true }))
+    setUploadError('')
     try {
-      const img = await uploadHomeworkImage(homeworkData.lesson.id, file)
+      const img = await uploadHomeworkImage(lessonId, file, type)
       setHomeworkData(prev => ({ ...prev, images: [...prev.images, img] }))
     } catch (err) {
-      setHwError(err.response?.data?.error ?? t('homework.uploadFailed'))
+      setUploadError(err.response?.data?.error ?? t('homework.uploadFailed'))
     } finally {
-      setHwUploading(false)
+      setImgUploading(prev => ({ ...prev, [type]: false }))
     }
   }
 
-  const handleHwDelete = async (imgId) => {
+  const handleImgDelete = async (imgId) => {
     try {
       await deleteHomeworkImage(imgId)
       setHomeworkData(prev => ({ ...prev, images: prev.images.filter(i => i.id !== imgId) }))
     } catch {}
   }
 
-  const handleDelete = async (id) => {
-    if (!confirm(t('common.confirmDelete'))) return
-    setDeleteError('')
+  const handleAudioDelete = async (audioId) => {
     try {
-      await deleteRecording(id)
-    } catch (err) {
-      const isAlreadyGone = err.response?.status === 404 && err.response?.data?.error === 'Not found.'
-      if (!isAlreadyGone) {
-        setDeleteError(err.response?.data?.error ?? t('family.deleteFailed'))
-        return
-      }
-    }
-    setRecordings(prev => prev.filter(r => r.id !== id))
-  }
-
-  const toggleComments = async (id) => {
-    if (activeId === id) { setActiveId(null); return }
-    setActiveId(id)
-    if (!comments[id]) {
-      const c = await getComments(id)
-      setComments(prev => ({ ...prev, [id]: c }))
-    }
-  }
-
-  const submitComment = async (recordingId) => {
-    const text = (newComment[recordingId] ?? '').trim()
-    if (!text) return
-    setSubmitting(true)
-    try {
-      const c = await addComment(recordingId, text)
-      setComments(prev => ({ ...prev, [recordingId]: [...(prev[recordingId] ?? []), c] }))
-      setNewComment(prev => ({ ...prev, [recordingId]: '' }))
-      setRecordings(prev => prev.map(r =>
-        r.id === recordingId ? { ...r, commentCount: r.commentCount + 1 } : r
-      ))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleReact = async (commentId, type, recordingId) => {
-    try {
-      const updatedReactions = await reactToComment(commentId, type)
-      setComments(prev => ({
-        ...prev,
-        [recordingId]: (prev[recordingId] ?? []).map(c =>
-          c.id === commentId ? { ...c, reactions: updatedReactions } : c
-        ),
-      }))
+      await deleteHomeworkAudio(audioId)
+      setHomeworkData(prev => ({ ...prev, audio: prev.audio.filter(a => a.id !== audioId) }))
     } catch {}
   }
 
-  const isOwn = (r) => {
-    if (r.uploaderId === undefined || r.uploaderId === null) return true
-    return r.uploaderId === user?.id
+  const formatDate = (dateStr) => {
+    const [y, m, d] = dateStr.split('-')
+    return new Date(+y, +m - 1, +d).toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' })
+  }
+
+  if (homeworkData === undefined) return <p className="empty">{t('common.loading')}</p>
+  if (!homeworkData?.lesson) return <p className="empty">{t('homework.noActive')}</p>
+
+  const { lesson, images, audio } = homeworkData
+  const types = lesson.homeworkTypes ?? []
+
+  const imagesByType = {}
+  images.forEach(img => {
+    if (!imagesByType[img.homeworkType]) imagesByType[img.homeworkType] = []
+    imagesByType[img.homeworkType].push(img)
+  })
+
+  const audioByType = {}
+  ;(audio ?? []).forEach(a => {
+    if (!audioByType[a.homeworkType]) audioByType[a.homeworkType] = []
+    audioByType[a.homeworkType].push(a)
+  })
+
+  return (
+    <>
+      <p className="homework-lesson-info">
+        {formatDate(lesson.date)}
+        {lesson.title && <span className="homework-lesson-title"> — {lesson.title}</span>}
+      </p>
+
+      {types.length === 0 && <p className="empty">{t('homework.noActive')}</p>}
+
+      {types.map(type => {
+        const needsPhoto = PHOTO_TYPES.includes(type)
+        const needsAudio = AUDIO_TYPES.includes(type)
+        const typeImages = imagesByType[type] ?? []
+        const typeAudio  = audioByType[type] ?? []
+        const isRecording = recordingType === type
+        const anyRecording = recordingType !== null
+
+        return (
+          <div key={type} className="hw-type-section">
+            <h3 className="hw-type-section-title">
+              {HW_TYPE_ICONS[type]} {t(`homework.type.${type}`)}
+            </h3>
+
+            {needsPhoto && (
+              <div className="hw-type-photo-area">
+                {typeImages.length > 0 ? (
+                  <div className="homework-gallery">
+                    {typeImages.map(img => (
+                      <div key={img.id} className="homework-thumb">
+                        <AuthImage id={img.id} alt={img.originalFilename} className="hw-thumb-img" onZoom={setLightboxSrc} />
+                        <button
+                          className="btn-icon btn-delete hw-thumb-del"
+                          onClick={() => handleImgDelete(img.id)}
+                          title={t('common.delete')}
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="empty">{t('homework.noSubmissions')}</p>
+                )}
+                <label className="btn-file hw-upload-btn">
+                  <Upload size={15} />
+                  <span>{t('homework.addImage')}</span>
+                  <input type="file" accept="image/*" onChange={e => handleImgUpload(e, lesson.id, type)} disabled={!!imgUploading[type]} />
+                </label>
+                {imgUploading[type] && <p className="status">{t('homework.uploading')}</p>}
+              </div>
+            )}
+
+            {needsAudio && (
+              <div className="hw-type-audio-area">
+                {typeAudio.length > 0 && (
+                  <ul className="hw-audio-list">
+                    {typeAudio.map((a, i) => (
+                      <li key={a.id} className="hw-audio-item">
+                        <AuthHomeworkAudio id={a.id} className="hw-audio-player" />
+                        <button
+                          className="btn-icon btn-delete"
+                          onClick={() => handleAudioDelete(a.id)}
+                          title={t('common.delete')}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <button
+                  className={`btn-record${isRecording ? ' recording' : ''}`}
+                  onClick={isRecording ? () => stopAndUpload(lesson.id, type) : () => startRecording(type)}
+                  disabled={!isRecording && anyRecording || !!audioUploading[type]}
+                >
+                  {isRecording
+                    ? <><StopCircle size={16} /><span>{t('family.stopUpload')}</span></>
+                    : <><Mic size={16} /><span>{t('family.record')}</span></>
+                  }
+                </button>
+                {audioUploading[type] && <p className="status">{t('homework.uploading')}</p>}
+              </div>
+            )}
+          </div>
+        )
+      })}
+
+      {uploadError && <p className="error">{uploadError}</p>}
+      {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+    </>
+  )
+}
+
+// ── Kommunikation Tab ──────────────────────────────────────────────────────
+
+function CommunicationSection({ t }) {
+  return (
+    <p className="empty communication-placeholder">{t('family.communicationComingSoon')}</p>
+  )
+}
+
+// ── Main Dashboard ─────────────────────────────────────────────────────────
+
+export default function FamilyDashboard() {
+  const { user, signOut } = useAuth()
+  const { locale, setLocale, t } = useLocale()
+  const navigate = useNavigate()
+  const [tab, setTab] = useState('homework')
+
+  const switchLocale = async (l) => {
+    setLocale(l)
+    await updateLocale(l).catch(() => {})
+  }
+
+  const handleLogout = async () => {
+    await logout().catch(() => {})
+    signOut()
+    navigate('/login')
   }
 
   const dateLocale = t('date.locale')
@@ -251,170 +368,23 @@ export default function FamilyDashboard() {
         </div>
       </header>
 
+      <nav className="tab-nav">
+        <button className={tab === 'homework' ? 'active' : ''} onClick={() => setTab('homework')}>
+          📚 {t('family.tabHomework')}
+        </button>
+        <button className={tab === 'report' ? 'active' : ''} onClick={() => setTab('report')}>
+          📋 {t('family.tabReport')}
+        </button>
+        <button className={tab === 'communication' ? 'active' : ''} onClick={() => setTab('communication')}>
+          💬 {t('family.tabCommunication')}
+        </button>
+      </nav>
+
       <main className="dashboard-main">
-        {homeworkData !== undefined && (
-          <section className="upload-section homework-section">
-            <h2>{t('homework.title')} 📚</h2>
-            {homeworkData === null || homeworkData?.lesson === null ? (
-              <p className="empty">{t('homework.noActive')}</p>
-            ) : (
-              <>
-                <p className="homework-lesson-info">
-                  {new Date(homeworkData.lesson.date + 'T00:00:00').toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
-                  {homeworkData.lesson.title && <span className="homework-lesson-title"> — {homeworkData.lesson.title}</span>}
-                </p>
-
-                {homeworkData.images.length > 0 ? (
-                  <div className="homework-gallery">
-                    {homeworkData.images.map(img => (
-                      <div key={img.id} className="homework-thumb">
-                        <AuthImage id={img.id} alt={img.originalFilename} className="hw-thumb-img" onZoom={setLightboxSrc} />
-                        <button
-                          className="btn-icon btn-delete hw-thumb-del"
-                          onClick={() => handleHwDelete(img.id)}
-                          title={t('common.delete')}
-                        >
-                          <Trash2 size={11} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="empty">{t('homework.noSubmissions')}</p>
-                )}
-
-                <label className="btn-file hw-upload-btn">
-                  <Upload size={15} />
-                  <span>{t('homework.addImage')}</span>
-                  <input type="file" accept="image/*" onChange={handleHwUpload} disabled={hwUploading} />
-                </label>
-                {hwUploading && <p className="status">{t('homework.uploading')}</p>}
-                {hwError && <p className="error">{hwError}</p>}
-              </>
-            )}
-          </section>
-        )}
-
-        <section className="upload-section">
-          <h2>{t('family.todayRecording')}</h2>
-          {hasUploadedToday ? (
-            <p className="success-msg">{t('family.alreadyUploaded')}</p>
-          ) : (
-            <div className="upload-controls">
-              <button
-                className={`btn-record ${recording ? 'recording' : ''}`}
-                onClick={recording ? stopAndUpload : startRecording}
-                disabled={uploading}
-              >
-                {recording ? <><StopCircle size={18} /><span>{t('family.stopUpload')}</span></> : <><Mic size={18} /><span>{t('family.record')}</span></>}
-              </button>
-              <span className="or">{t('family.or')}</span>
-              <label className="btn-file">
-                <Upload size={16} />
-                <span>{t('family.chooseFile')}</span>
-                <input type="file" accept="audio/*" onChange={handleFileInput} disabled={uploading} />
-              </label>
-              {uploading && <p className="status">{t('family.uploading')}</p>}
-              {uploadError && <p className="error">{uploadError}</p>}
-            </div>
-          )}
-        </section>
-
-        <section className="recordings-section">
-          <h2>{t('family.allRecordings')}</h2>
-          {deleteError && <p className="error">{deleteError}</p>}
-          {recordings.length === 0 ? (
-            <p className="empty">{t('family.noRecordings')}</p>
-          ) : (
-            <ul className="recording-list">
-              {recordings.map(r => (
-                <li key={r.id} className={`recording-item ${activeId === r.id ? 'active' : ''}`}>
-                  <div className="recording-meta">
-                    <div>
-                      <span className="recording-date">
-                        {new Date(r.recordedAt).toLocaleDateString(dateLocale, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
-                      </span>
-                      {r.uploaderName && (
-                        <span className="uploader-badge"> · {r.uploaderName}</span>
-                      )}
-                    </div>
-                    <div className="recording-actions">
-                      <button className="btn-icon btn-toggle" onClick={() => toggleComments(r.id)} title={activeId === r.id ? t('teacher.close') : t('teacher.open')}>
-                        <Icon name="chevron-down" size={16} style={activeId === r.id ? { transform: 'rotate(180deg)' } : {}} />
-                        {r.commentCount > 0 && activeId !== r.id && <span className="comment-count-badge">{r.commentCount}</span>}
-                      </button>
-                      {isOwn(r) && (
-                        <button className="btn-icon btn-delete" onClick={() => handleDelete(r.id)} title={t('common.delete')}>
-                          <Trash2 size={15} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {activeId === r.id && (
-                    <div className="recording-detail">
-                      <AuthAudio id={r.id} className="audio-player" />
-                      <div className="comments-section">
-                        <h3>{t('teacher.comments')}</h3>
-                        {(comments[r.id] ?? []).length === 0 ? (
-                          <p className="empty">{t('teacher.noComments')}</p>
-                        ) : (
-                          <ul className="comment-list">
-                            {(comments[r.id] ?? []).map(c => (
-                              <li key={c.id} className="comment">
-                                <div className="comment-header">
-                                  {c.authorName && (
-                                    <span className={`comment-author${c.authorRole === 'teacher' ? ' comment-author-teacher' : ''}`}>
-                                      {c.authorName}
-                                      {c.authorRole === 'teacher' && <span className="comment-role-badge">{t('comment.teacherBadge')}</span>}
-                                    </span>
-                                  )}
-                                  <span className="comment-date">{new Date(c.createdAt).toLocaleDateString(dateLocale)}</span>
-                                </div>
-                                <p>{c.content}</p>
-                                <div className="comment-reactions">
-                                  {[['thumbs_up', '👍'], ['heart', '❤️'], ['thumbs_down', '👎']].map(([type, emoji]) => (
-                                    <button
-                                      key={type}
-                                      className={`btn-reaction${c.reactions?.mine === type ? ' active' : ''}`}
-                                      onClick={() => handleReact(c.id, type, r.id)}
-                                      title={c.reactions?.users?.[type]?.length > 0 ? c.reactions.users[type].join(', ') : t(`comment.reaction.${type}`)}
-                                    >
-                                      {emoji}{c.reactions?.[type] > 0 && <span className="reaction-count">{c.reactions[type]}</span>}
-                                    </button>
-                                  ))}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                        <div className="comment-form">
-                          <textarea
-                            rows={2}
-                            placeholder={t('teacher.commentPlaceholder')}
-                            value={newComment[r.id] ?? ''}
-                            onChange={e => setNewComment(prev => ({ ...prev, [r.id]: e.target.value }))}
-                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(r.id) } }}
-                          />
-                          <button
-                            className="btn-icon btn-send"
-                            onClick={() => submitComment(r.id)}
-                            disabled={submitting || !(newComment[r.id] ?? '').trim()}
-                            title={t('common.send')}
-                          >
-                            <Send size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        {tab === 'homework'      && <HomeworkSection t={t} dateLocale={dateLocale} />}
+        {tab === 'report'        && <ReportSection t={t} dateLocale={dateLocale} />}
+        {tab === 'communication' && <CommunicationSection t={t} />}
       </main>
-      {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
     </div>
   )
 }

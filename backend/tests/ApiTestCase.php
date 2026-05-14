@@ -18,8 +18,9 @@ abstract class ApiTestCase extends WebTestCase
     protected KernelBrowser $client;
     protected EntityManagerInterface $em;
 
-    protected const TEST_RECORDINGS_DIR = '/tmp/tongsheng_test_recordings';
-    protected const TEST_HOMEWORK_DIR   = '/tmp/tongsheng_test_homework';
+    protected const TEST_RECORDINGS_DIR      = '/tmp/tongsheng_test_recordings';
+    protected const TEST_HOMEWORK_DIR        = '/tmp/tongsheng_test_homework';
+    protected const TEST_HOMEWORK_AUDIO_DIR  = '/tmp/tongsheng_test_homework_audio';
 
     private static bool $schemaCreated = false;
 
@@ -43,13 +44,14 @@ abstract class ApiTestCase extends WebTestCase
 
         @mkdir(self::TEST_RECORDINGS_DIR, 0755, true);
         @mkdir(self::TEST_HOMEWORK_DIR, 0755, true);
+        @mkdir(self::TEST_HOMEWORK_AUDIO_DIR, 0755, true);
     }
 
     private function truncateAllTables(): void
     {
         $conn = $this->em->getConnection();
         $conn->executeStatement('SET FOREIGN_KEY_CHECKS=0');
-        foreach (['comment_reactions', 'comments', 'homework_images', 'recordings', 'attendance', 'lessons', 'invitations', 'users', 'families'] as $table) {
+        foreach (['comment_reactions', 'comments', 'homework_audio', 'homework_images', 'recordings', 'attendance', 'lessons', 'invitations', 'users', 'families'] as $table) {
             $conn->executeStatement("TRUNCATE TABLE `$table`");
         }
         $conn->executeStatement('SET FOREIGN_KEY_CHECKS=1');
@@ -63,6 +65,9 @@ abstract class ApiTestCase extends WebTestCase
         }
         if (is_dir(self::TEST_HOMEWORK_DIR)) {
             $this->rmdirRecursive(self::TEST_HOMEWORK_DIR);
+        }
+        if (is_dir(self::TEST_HOMEWORK_AUDIO_DIR)) {
+            $this->rmdirRecursive(self::TEST_HOMEWORK_AUDIO_DIR);
         }
         parent::tearDown();
     }
@@ -141,13 +146,14 @@ abstract class ApiTestCase extends WebTestCase
         file_put_contents($dir . '/' . $filename, $content);
     }
 
-    protected function createLesson(string $date = '2025-06-01', ?string $title = null, bool $homeworkAssigned = false): Lesson
+    protected function createLesson(string $date = '2025-06-01', ?string $title = null, bool $homeworkAssigned = false, ?array $homeworkTypes = null): Lesson
     {
         $teacher = $this->em->getRepository(User::class)->findOneBy(['role' => 'teacher']);
         $lesson = new Lesson();
         $lesson->setDate(new \DateTimeImmutable($date))
             ->setTitle($title)
             ->setHomeworkAssigned($homeworkAssigned)
+            ->setHomeworkTypes($homeworkTypes)
             ->setCreatedBy($teacher);
         $this->em->persist($lesson);
         $this->em->flush();
@@ -163,17 +169,20 @@ abstract class ApiTestCase extends WebTestCase
         return $comment;
     }
 
-    protected function req(string $method, string $uri, array $json = [], string $token = '', array $files = []): void
+    protected function req(string $method, string $uri, array $json = [], string $token = '', array $files = [], array $formParams = []): void
     {
-        $this->em->clear(); // flush EM identity map so HTTP request reads fresh from DB
-        $server = ['CONTENT_TYPE' => 'application/json'];
+        $this->em->clear();
+        $server = [];
         if ($token !== '') {
             $server['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
         }
-        $this->client->request(
-            $method, $uri, [], $files, $server,
-            ($json && !$files) ? json_encode($json) : null
-        );
+        if ($files) {
+            // multipart form: pass formParams as POST parameters alongside files
+            $this->client->request($method, $uri, $formParams, $files, $server);
+        } else {
+            $server['CONTENT_TYPE'] = 'application/json';
+            $this->client->request($method, $uri, [], [], $server, $json ? json_encode($json) : null);
+        }
     }
 
     protected function httpStatus(): int

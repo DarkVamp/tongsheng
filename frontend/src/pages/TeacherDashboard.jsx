@@ -5,7 +5,7 @@ import LuckyWheel from '../components/LuckyWheel'
 import { getRecordings, deleteRecording, fetchAudioBlob, getComments, addComment, reactToComment } from '../api/recordings'
 import { createFamily, deleteFamily, getFamilyMembers, createMember, deleteMember } from '../api/families'
 import { toggleStudent, getLessons, createLesson, deleteLesson, getLessonAttendance, setAttendance, patchLesson } from '../api/lessons'
-import { getHomeworkAllForLesson, fetchHomeworkImageBlob } from '../api/homework'
+import { getHomeworkAllForLesson, fetchHomeworkImageBlob, getHomeworkByType, fetchHomeworkAudioBlob } from '../api/homework'
 import { logout, updateLocale } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
 import { useLocale } from '../context/LocaleContext'
@@ -19,6 +19,18 @@ function AuthAudio({ id, className }) {
     return () => { if (url) URL.revokeObjectURL(url) }
   }, [id])
   const { t } = useLocale()
+  if (!src) return <span className="audio-loading">{t('common.loading')}</span>
+  return <audio controls src={src} className={className} />
+}
+
+function AuthHomeworkAudio({ id, className }) {
+  const [src, setSrc] = useState(null)
+  const { t } = useLocale()
+  useEffect(() => {
+    let url
+    fetchHomeworkAudioBlob(id).then(u => { url = u; setSrc(u) })
+    return () => { if (url) URL.revokeObjectURL(url) }
+  }, [id])
   if (!src) return <span className="audio-loading">{t('common.loading')}</span>
   return <audio controls src={src} className={className} />
 }
@@ -739,6 +751,158 @@ function LessonsTab({ t, dateLocale }) {
   )
 }
 
+// ── Hausaufgaben Tab ───────────────────────────────────────────────────────
+
+const HOMEWORK_TYPE_DEFS = [
+  { key: 'lesen',       icon: '🎙️' },
+  { key: 'schreiben',   icon: '📷' },
+  { key: 'schriftlich', icon: '📝' },
+  { key: 'malen',       icon: '🎨' },
+  { key: 'sonstiges',   icon: '🎙️📷' },
+]
+
+function HomeworkTab({ t, dateLocale }) {
+  const [lessons, setLessons] = useState([])
+  const [loaded, setLoaded] = useState(false)
+  const [saving, setSaving] = useState({})
+  const [submissionsOpen, setSubmissionsOpen] = useState({})
+  const [submissionsData, setSubmissionsData] = useState({})
+  const [lightboxSrc, setLightboxSrc] = useState(null)
+
+  useEffect(() => {
+    getLessons().then(data => { setLessons(data); setLoaded(true) })
+  }, [])
+
+  const toggleType = async (lessonId, type) => {
+    const lesson = lessons.find(l => l.id === lessonId)
+    if (!lesson) return
+    const current = lesson.homeworkTypes ?? []
+    const next = current.includes(type)
+      ? current.filter(k => k !== type)
+      : [...current, type]
+
+    setSaving(prev => ({ ...prev, [lessonId]: true }))
+    try {
+      const updated = await patchLesson(lessonId, { homeworkTypes: next })
+      setLessons(prev => prev.map(l => l.id === lessonId ? { ...l, homeworkTypes: updated.homeworkTypes } : l))
+    } catch {}
+    setSaving(prev => ({ ...prev, [lessonId]: false }))
+  }
+
+  const toggleSubmissions = async (lessonId) => {
+    const isOpen = !!submissionsOpen[lessonId]
+    setSubmissionsOpen(prev => ({ ...prev, [lessonId]: !isOpen }))
+    if (!isOpen && !submissionsData[lessonId]) {
+      try {
+        const data = await getHomeworkByType(lessonId)
+        setSubmissionsData(prev => ({ ...prev, [lessonId]: data }))
+      } catch {}
+    }
+  }
+
+  const formatDate = (dateStr) => {
+    const [y, m, d] = dateStr.split('-')
+    return new Date(+y, +m - 1, +d).toLocaleDateString(dateLocale, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+  }
+
+  if (!loaded) return <p className="empty">{t('common.loading')}</p>
+  if (lessons.length === 0) return <p className="empty">{t('teacher.hwNoLessons')}</p>
+
+  return (
+    <>
+      <ul className="hw-lesson-list">
+        {lessons.map(l => {
+          const types = l.homeworkTypes ?? []
+          const isSaving = saving[l.id]
+          const isSubOpen = !!submissionsOpen[l.id]
+          return (
+            <li key={l.id} className="hw-lesson-item">
+              <div className="hw-lesson-header">
+                <span className="hw-lesson-date">{formatDate(l.date)}</span>
+                {l.title && <span className="hw-lesson-title">{l.title}</span>}
+              </div>
+              <div className="hw-type-toggles">
+                {HOMEWORK_TYPE_DEFS.map(({ key, icon }) => (
+                  <button
+                    key={key}
+                    className={`btn-hw-type${types.includes(key) ? ' active' : ''}${isSaving ? ' saving' : ''}`}
+                    onClick={() => toggleType(l.id, key)}
+                    disabled={isSaving}
+                  >
+                    <span className="hw-type-icon">{icon}</span>
+                    {t(`homework.type.${key}`)}
+                  </button>
+                ))}
+              </div>
+              {types.length > 0 && (
+                <button
+                  className={`btn-hw-submissions-toggle${isSubOpen ? ' active' : ''}`}
+                  onClick={() => toggleSubmissions(l.id)}
+                >
+                  📊 {t('homework.submissions')}
+                  <span className="hw-sub-chevron">{isSubOpen ? ' ▲' : ' ▼'}</span>
+                </button>
+              )}
+              {isSubOpen && (
+                <div className="hw-submissions-panel">
+                  {submissionsData[l.id] ? (() => {
+                    const byTypeData = submissionsData[l.id].byType
+                    const types = Object.keys(byTypeData)
+                    const familyMap = {}
+                    types.forEach(type => {
+                      byTypeData[type].families.forEach(f => {
+                        if (!familyMap[f.id]) familyMap[f.id] = { id: f.id, name: f.name, types: {} }
+                        familyMap[f.id].types[type] = { images: f.images, audio: f.audio, submitted: f.submitted }
+                      })
+                    })
+                    const familyList = Object.values(familyMap).sort((a, b) => a.name.localeCompare(b.name))
+                    return familyList.map(f => (
+                      <div key={f.id} className="hw-sub-family-block">
+                        <h5 className="hw-sub-family-title">{f.name}</h5>
+                        {types.map(type => {
+                          const entry = f.types[type]
+                          if (!entry) return null
+                          const def = HOMEWORK_TYPE_DEFS.find(d => d.key === type)
+                          return (
+                            <div key={type} className={`hw-sub-type-row${entry.submitted ? ' hw-submitted' : ''}`}>
+                              <span className="hw-sub-type-label">{def?.icon} {t(`homework.type.${type}`)}</span>
+                              {entry.submitted
+                                ? <span className="hw-badge hw-badge-ok">{t('homework.submitted')}</span>
+                                : <span className="hw-badge hw-badge-missing">{t('homework.notSubmitted')}</span>
+                              }
+                              {entry.images.length > 0 && (
+                                <div className="homework-gallery-sm">
+                                  {entry.images.map(img => (
+                                    <AuthImage key={img.id} id={img.id} alt={img.originalFilename} className="hw-thumb-img-sm" onZoom={setLightboxSrc} />
+                                  ))}
+                                </div>
+                              )}
+                              {entry.audio.length > 0 && (
+                                <div className="hw-sub-audio">
+                                  {entry.audio.map(a => (
+                                    <AuthHomeworkAudio key={a.id} id={a.id} className="hw-audio-player" />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ))
+                  })() : (
+                    <p className="empty">{t('common.loading')}</p>
+                  )}
+                </div>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+      {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+    </>
+  )
+}
+
 // ── Main Dashboard ─────────────────────────────────────────────────────────
 
 export default function TeacherDashboard() {
@@ -791,12 +955,17 @@ export default function TeacherDashboard() {
           <Icon name="calendar" size={15} />
           {t('teacher.tabLessons')}
         </button>
+        <button className={tab === 'homework' ? 'active' : ''} onClick={() => setTab('homework')}>
+          📚
+          {t('teacher.tabHomework')}
+        </button>
       </nav>
 
       <main className="dashboard-main">
         {tab === 'recordings' && <RecordingsTab t={t} dateLocale={dateLocale} />}
         {tab === 'students' && <StudentsTab t={t} />}
         {tab === 'lessons' && <LessonsTab t={t} dateLocale={dateLocale} />}
+        {tab === 'homework' && <HomeworkTab t={t} dateLocale={dateLocale} />}
       </main>
     </div>
   )
