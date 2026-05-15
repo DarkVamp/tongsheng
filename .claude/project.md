@@ -126,7 +126,7 @@ App für Sprachaufnahmen von Kindern beim Chinesisch-Unterricht. Familienmitglie
 3. **Unterricht** — Stunden anlegen/löschen, Anwesenheit, Zusammenfassung (📝), Hausaufgaben-Einreichungen
 4. **Hausaufgaben** — pro Unterrichtsstunde konfigurieren welche Typen aufgegeben wurden (Lesen 🎙️, Schreiben 📷, Schriftlich 📝, Malen 🎨, Sonstiges 🎙️📷)
 
-## PHPUnit Tests (195 Tests, alle grün)
+## PHPUnit Tests (196 Tests, alle grün)
 
 ```bash
 cd backend
@@ -152,7 +152,7 @@ PHP_INI_SCAN_DIR=/home/ralfk/.php/conf.d php bin/phpunit --no-coverage
 - Cron Job auf All-Inkl.com noch nicht eingerichtet
 
 ## Aktuelle Version
-`1.1.0` (frontend/package.json)
+`1.1.2` (frontend/package.json)
 
 ## Laufender Umbau (begonnen 2026-05-13)
 Großer Umbau der App — schrittweise:
@@ -161,17 +161,14 @@ Großer Umbau der App — schrittweise:
 - ✅ **HomeworkAudio-System:** `homework_audio`-Tabelle, Controller, Tests (ersetzt Recordings)
 - ✅ **FamilyDashboard umstrukturiert:** 3 Tabs — Hausaufgaben (pro Typ mit Foto-Upload), Report (Lektionsliste mit Zusammenfassungen), Kommunikation (Placeholder)
 - ✅ **Hausaufgaben-Tab (Familie):** Audio-Aufnahme für lesen/sonstiges implementiert; latestHomework liefert jetzt auch Audio
-- ⏳ **Eltern sehen Zusammenfassung** im FamilyDashboard (noch offen)
+- ✅ **Eltern sehen Zusammenfassung** im FamilyDashboard — Report-Tab zeigt Lektionen mit Zusammenfassungen
 - ⏳ **Recordings-System abschalten** wenn homework_audio voll in Betrieb
 - Weitere Umbau-Schritte folgen
 
 ## Offene Aufgaben
 1. Cron Job auf All-Inkl.com für automatische Aufnahmen-Löschung
 2. `frontend/src/api/invitations.js` entfernen (ungenutzt)
-3. **FamilyDashboard:** Hausaufgaben-Einreichungen pro Typ (Audio für lesen/sonstiges, Foto für Rest)
-4. Eltern-Ansicht für Zusammenfassung im FamilyDashboard
-5. SQL 012 + 013 in phpMyAdmin auf Produktion einspielen
-6. Recordings-System deprecaten/entfernen sobald homework_audio produktiv
+3. Recordings-System deprecaten/entfernen sobald homework_audio produktiv
 
 ## Accounts
 - Lehrerin: ysong@song-kraus.com (role: teacher, locale: zh)

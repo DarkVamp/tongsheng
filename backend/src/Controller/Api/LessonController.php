@@ -25,12 +25,19 @@ class LessonController extends AbstractController
     {
         /** @var User $user */
         $user = $this->getUser();
+
+        $lessons = $repo->findBy([], ['date' => 'DESC']);
+
         if (!$user->isTeacher()) {
-            return $this->json(['error' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+            return $this->json(array_map(fn(Lesson $l) => [
+                'id'      => $l->getId(),
+                'date'    => $l->getDate()->format('Y-m-d'),
+                'title'   => $l->getTitle(),
+                'summary' => $l->getSummary(),
+            ], $lessons));
         }
 
         try {
-            $lessons = $repo->findBy([], ['date' => 'DESC']);
             $totalStudents = count($userRepo->findBy(['isStudent' => true]));
 
             return $this->json(array_map(function (Lesson $l) use ($attendanceRepo, $totalStudents) {

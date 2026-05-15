@@ -11,9 +11,13 @@ class HomeworkAudioControllerTest extends ApiTestCase
     private function makeAudioFile(): UploadedFile
     {
         $tmp = tempnam(sys_get_temp_dir(), 'hw_aud_');
-        // Minimal valid WebM header bytes
-        file_put_contents($tmp, "\x1a\x45\xdf\xa3" . str_repeat("\x00", 60));
-        return new UploadedFile($tmp, 'test.webm', 'audio/webm', null, true);
+        // Minimal valid WAV: finfo detects as audio/x-wav (in ALLOWED_MIME_TYPES)
+        $wav = 'RIFF' . pack('V', 36) . 'WAVE'
+            . 'fmt ' . pack('V', 16) . pack('v', 1) . pack('v', 1)
+            . pack('V', 44100) . pack('V', 88200) . pack('v', 2) . pack('v', 16)
+            . 'data' . pack('V', 0);
+        file_put_contents($tmp, $wav);
+        return new UploadedFile($tmp, 'test.wav', 'audio/wav', null, true);
     }
 
     private function makeInvalidFile(): UploadedFile

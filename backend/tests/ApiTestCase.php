@@ -176,8 +176,7 @@ abstract class ApiTestCase extends WebTestCase
         if ($token !== '') {
             $server['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
         }
-        if ($files) {
-            // multipart form: pass formParams as POST parameters alongside files
+        if ($files || $formParams) {
             $this->client->request($method, $uri, $formParams, $files, $server);
         } else {
             $server['CONTENT_TYPE'] = 'application/json';

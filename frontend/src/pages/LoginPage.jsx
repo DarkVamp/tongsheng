@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { login } from '../api/auth'
 import { useAuth } from '../context/AuthContext'
 import { useLocale } from '../context/LocaleContext'
+import { version } from '../../package.json'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -50,6 +51,7 @@ export default function LoginPage() {
           <button className={locale === 'zh' ? 'active' : ''} onClick={() => setLocale('zh')} title="中文">🇨🇳</button>
           <button className={locale === 'de' ? 'active' : ''} onClick={() => setLocale('de')} title="Deutsch">🇩🇪</button>
         </div>
+        <p className="login-version">v{version}</p>
         <p className="login-copyright">
           &copy; {new Date().getFullYear()} <a href="https://ralf-kraus.com/" target="_blank" rel="noopener noreferrer">Ralf Kraus</a>
         </p>

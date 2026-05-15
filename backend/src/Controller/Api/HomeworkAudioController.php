@@ -90,6 +90,7 @@ class HomeworkAudioController extends AbstractController
             }
         }
 
+        $fileSize = $file->getSize();
         $ext      = $file->guessExtension() ?? 'webm';
         $filename = sprintf('%s.%s', bin2hex(random_bytes(8)), $ext);
 
@@ -105,7 +106,7 @@ class HomeworkAudioController extends AbstractController
               ->setHomeworkType($hwType)
               ->setFilename($filename)
               ->setMimeType($mimeType)
-              ->setFileSize($file->getSize());
+              ->setFileSize($fileSize);
 
         $em->persist($audio);
         $em->flush();

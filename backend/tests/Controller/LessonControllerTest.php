@@ -8,12 +8,24 @@ class LessonControllerTest extends ApiTestCase
 {
     // ── GET /api/lessons ──────────────────────────────────────────────────────
 
-    public function testListForbiddenForFamilyMember(): void
+    public function testListForFamilyMemberReturnsPublicFields(): void
     {
+        $this->createTeacher('t@t.com', 'tok_llist_teacher_fm');
         $family = $this->createFamily();
-        $member = $this->createMember($family, 'm@t.com', 'tok_llist_fm');
+        $this->createMember($family, 'm@t.com', 'tok_llist_fm');
+        $this->createLesson('2025-06-01');
+
         $this->req('GET', '/api/lessons', [], 'tok_llist_fm');
-        self::assertSame(403, $this->httpStatus());
+        self::assertSame(200, $this->httpStatus());
+
+        $data = $this->responseData();
+        self::assertCount(1, $data);
+        self::assertArrayHasKey('id', $data[0]);
+        self::assertArrayHasKey('date', $data[0]);
+        self::assertArrayHasKey('title', $data[0]);
+        self::assertArrayHasKey('summary', $data[0]);
+        self::assertArrayNotHasKey('presentCount', $data[0]);
+        self::assertArrayNotHasKey('homeworkTypes', $data[0]);
     }
 
     public function testListEmpty(): void

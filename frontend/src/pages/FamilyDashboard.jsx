@@ -75,7 +75,7 @@ function ReportSection({ t, dateLocale }) {
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    getLessons().then(data => { setLessons(data); setLoaded(true) })
+    getLessons().then(data => { setLessons(data); setLoaded(true) }).catch(() => setLoaded(true))
   }, [])
 
   const formatDate = (dateStr) => {
