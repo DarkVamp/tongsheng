@@ -39,6 +39,11 @@ const translations = {
     'family.noSummary': 'Noch keine Zusammenfassung.',
     'family.communicationComingSoon': 'Wird bald freigeschaltet.',
 
+    // Kommunikation-Tab (Familie)
+    'family.comm.noLessons': 'Noch kein Feedback vorhanden.',
+    'family.comm.noMessages': 'Kein Feedback für diese Stunde.',
+    'family.comm.from': 'Von der Lehrerin',
+
     // Teacher Dashboard
     'teacher.badge': 'Lehrerin',
     'teacher.filterPlaceholder': 'Familie suchen…',
@@ -57,6 +62,28 @@ const translations = {
     'teacher.tabStudents': 'Familien',
     'teacher.tabLessons': 'Unterricht',
     'teacher.tabHomework': 'Hausaufgaben',
+    'teacher.tabCommunication': 'Kommunikation',
+    'teacher.communicationComingSoon': 'Kommunikation — kommt bald.',
+
+    // Kommunikation-Tab (Lehrerin)
+    'teacher.comm.noLessons': 'Noch keine Unterrichtsstunden.',
+    'teacher.comm.noStudentsPresent': 'Keine Schüler anwesend.',
+    'teacher.comm.addMessage': 'Nachricht hinzufügen',
+    'teacher.comm.messagePlaceholder': 'Feedback für diesen Schüler…',
+    'teacher.comm.send': 'Senden',
+    'teacher.comm.sending': 'Sende…',
+    'teacher.comm.cancel': 'Abbrechen',
+    'teacher.comm.editText': 'Text bearbeiten',
+    'teacher.comm.saveText': 'Speichern',
+    'teacher.comm.savingText': 'Speichere…',
+    'teacher.comm.deleteMessage': 'Nachricht löschen',
+    'teacher.comm.confirmDeleteMessage': 'Nachricht wirklich löschen?',
+    'teacher.comm.addAudio': 'Sprachnachricht aufnehmen',
+    'teacher.comm.recording': 'Aufnahme läuft…',
+    'teacher.comm.stopRecording': 'Stop',
+    'teacher.comm.addImage': 'Bild hinzufügen',
+    'teacher.comm.deleteAttachment': 'Anhang löschen',
+    'teacher.comm.noMessages': 'Noch keine Nachrichten.',
 
     // Familien-Verwaltung
     'teacher.createFamily': 'Familie anlegen',
@@ -211,6 +238,11 @@ const translations = {
     'family.noSummary': '暂无总结。',
     'family.communicationComingSoon': '即将推出。',
 
+    // 沟通标签（家庭）
+    'family.comm.noLessons': '暂无反馈。',
+    'family.comm.noMessages': '本课暂无反馈。',
+    'family.comm.from': '来自老师',
+
     // Teacher Dashboard
     'teacher.badge': '老师',
     'teacher.filterPlaceholder': '搜索家庭…',
@@ -229,6 +261,28 @@ const translations = {
     'teacher.tabStudents': '家庭',
     'teacher.tabLessons': '课程',
     'teacher.tabHomework': '家庭作业',
+    'teacher.tabCommunication': '沟通',
+    'teacher.communicationComingSoon': '沟通 — 即将推出。',
+
+    // 沟通标签（教师）
+    'teacher.comm.noLessons': '尚无课程。',
+    'teacher.comm.noStudentsPresent': '没有学生出席。',
+    'teacher.comm.addMessage': '添加消息',
+    'teacher.comm.messagePlaceholder': '对该学生的反馈…',
+    'teacher.comm.send': '发送',
+    'teacher.comm.sending': '发送中…',
+    'teacher.comm.cancel': '取消',
+    'teacher.comm.editText': '编辑文字',
+    'teacher.comm.saveText': '保存',
+    'teacher.comm.savingText': '保存中…',
+    'teacher.comm.deleteMessage': '删除消息',
+    'teacher.comm.confirmDeleteMessage': '确定删除此消息？',
+    'teacher.comm.addAudio': '录制语音消息',
+    'teacher.comm.recording': '录音中…',
+    'teacher.comm.stopRecording': '停止',
+    'teacher.comm.addImage': '添加图片',
+    'teacher.comm.deleteAttachment': '删除附件',
+    'teacher.comm.noMessages': '尚无消息。',
 
     // 家庭管理
     'teacher.createFamily': '创建家庭',

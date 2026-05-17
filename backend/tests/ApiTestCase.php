@@ -21,6 +21,7 @@ abstract class ApiTestCase extends WebTestCase
     protected const TEST_RECORDINGS_DIR      = '/tmp/tongsheng_test_recordings';
     protected const TEST_HOMEWORK_DIR        = '/tmp/tongsheng_test_homework';
     protected const TEST_HOMEWORK_AUDIO_DIR  = '/tmp/tongsheng_test_homework_audio';
+    protected const TEST_FEEDBACK_DIR        = '/tmp/tongsheng_test_feedback';
 
     private static bool $schemaCreated = false;
 
@@ -45,13 +46,14 @@ abstract class ApiTestCase extends WebTestCase
         @mkdir(self::TEST_RECORDINGS_DIR, 0755, true);
         @mkdir(self::TEST_HOMEWORK_DIR, 0755, true);
         @mkdir(self::TEST_HOMEWORK_AUDIO_DIR, 0755, true);
+        @mkdir(self::TEST_FEEDBACK_DIR, 0755, true);
     }
 
     private function truncateAllTables(): void
     {
         $conn = $this->em->getConnection();
         $conn->executeStatement('SET FOREIGN_KEY_CHECKS=0');
-        foreach (['comment_reactions', 'comments', 'homework_audio', 'homework_images', 'recordings', 'attendance', 'lessons', 'invitations', 'users', 'families'] as $table) {
+        foreach (['feedback_attachments', 'feedback_messages', 'comment_reactions', 'comments', 'homework_audio', 'homework_images', 'recordings', 'attendance', 'lessons', 'invitations', 'users', 'families'] as $table) {
             $conn->executeStatement("TRUNCATE TABLE `$table`");
         }
         $conn->executeStatement('SET FOREIGN_KEY_CHECKS=1');
@@ -68,6 +70,9 @@ abstract class ApiTestCase extends WebTestCase
         }
         if (is_dir(self::TEST_HOMEWORK_AUDIO_DIR)) {
             $this->rmdirRecursive(self::TEST_HOMEWORK_AUDIO_DIR);
+        }
+        if (is_dir(self::TEST_FEEDBACK_DIR)) {
+            $this->rmdirRecursive(self::TEST_FEEDBACK_DIR);
         }
         parent::tearDown();
     }
@@ -121,6 +126,25 @@ abstract class ApiTestCase extends WebTestCase
             ->setFamily($family)
             ->setApiToken($token);
         $user->setPassword($this->hasher()->hashPassword($user, $password));
+        $this->em->persist($user);
+        $this->em->flush();
+        return $user;
+    }
+
+    protected function createStudent(
+        Family $family,
+        string $email = 'student@test.com',
+        string $token = 'tok_student',
+        string $name = 'Kind'
+    ): User {
+        $user = new User();
+        $user->setEmail($email)
+            ->setFamilyName($name)
+            ->setRole('family_member')
+            ->setFamily($family)
+            ->setIsStudent(true)
+            ->setApiToken($token);
+        $user->setPassword($this->hasher()->hashPassword($user, 'secret123'));
         $this->em->persist($user);
         $this->em->flush();
         return $user;

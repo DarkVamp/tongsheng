@@ -60,6 +60,7 @@ App für Sprachaufnahmen von Kindern beim Chinesisch-Unterricht. Familienmitglie
 - `011_lesson_summary.sql` ✅
 - `012_homework_types.sql` ⏳ (in phpMyAdmin einspielen)
 - `013_homework_audio.sql` ⏳ (in phpMyAdmin einspielen)
+- `014_feedback.sql` ⏳ (in phpMyAdmin einspielen)
 
 ## Tech Stack
 
@@ -121,12 +122,33 @@ App für Sprachaufnahmen von Kindern beim Chinesisch-Unterricht. Familienmitglie
 - Locale per `PATCH /api/me/locale` in DB gespeichert
 
 ## Teacher-Dashboard Tabs
-1. **Aufnahmen** — gefilterte Liste aller Aufnahmen, Kommentarfunktion
-2. **Familien** — Familien anlegen/löschen, Mitglieder verwalten, Schüler markieren
-3. **Unterricht** — Stunden anlegen/löschen, Anwesenheit, Zusammenfassung (📝), Hausaufgaben-Einreichungen
-4. **Hausaufgaben** — pro Unterrichtsstunde konfigurieren welche Typen aufgegeben wurden (Lesen 🎙️, Schreiben 📷, Schriftlich 📝, Malen 🎨, Sonstiges 🎙️📷)
+Navigation: nur Icons (kein Label), gleichmäßig verteilt. Reihenfolge:
+1. **Hausaufgaben** (BookOpen) — pro Unterrichtsstunde Typen konfigurieren + Einreichungsansicht; Familien standardmäßig eingeklappt, Header zeigt X/Y-Status-Badge
+2. **Familien** (Users) — Familien anlegen/löschen, Mitglieder verwalten, Schüler markieren
+3. **Unterricht** (Calendar) — Stunden anlegen/löschen, Anwesenheit, Zusammenfassung (📝), Hausaufgaben-Einreichungen
+4. **Kommunikation** (MessageSquare) — Placeholder, noch ohne Funktion
 
-## PHPUnit Tests (196 Tests, alle grün)
+Standard-Tab beim Öffnen: **Hausaufgaben**
+
+Der **Aufnahmen**-Tab ist aus der Navigation entfernt (RecordingsTab-Komponente bleibt im Code für spätere Nutzung).
+
+### Kommunikation / Feedback
+- Lehrerin schreibt Feedback pro Schüler und Unterrichtsstunde
+- Feedback-Message: Text (nullable) + Anhänge (Audio & Bilder, beliebig viele)
+- Lehrerin kann Text bearbeiten, Anhänge hinzufügen/löschen, Message löschen
+- Familie sieht Feedback ihrer Schüler im Kommunikation-Tab (read-only)
+- Speicherort: `var/feedback/`
+- Tabellen: `feedback_messages` + `feedback_attachments` (SQL 014)
+- API:
+  - `GET /api/lessons/{id}/feedback` — teacher: alle; family: nur eigene Schüler
+  - `POST /api/lessons/{lessonId}/feedback/{studentId}` — Message anlegen (Lehrerin)
+  - `PATCH /api/feedback/messages/{id}` — Text bearbeiten (Lehrerin)
+  - `POST /api/feedback/messages/{id}/attachment` — Anhang hochladen (Lehrerin)
+  - `GET /api/feedback/attachments/{id}/stream` — Anhang abrufen (auth)
+  - `POST /api/feedback/messages/{id}/delete` — Message löschen (Lehrerin)
+  - `POST /api/feedback/attachments/{id}/delete` — Anhang löschen (Lehrerin)
+
+## PHPUnit Tests (229 Tests, alle grün)
 
 ```bash
 cd backend
@@ -152,7 +174,7 @@ PHP_INI_SCAN_DIR=/home/ralfk/.php/conf.d php bin/phpunit --no-coverage
 - Cron Job auf All-Inkl.com noch nicht eingerichtet
 
 ## Aktuelle Version
-`1.1.2` (frontend/package.json)
+`1.1.7` (frontend/package.json)
 
 ## Laufender Umbau (begonnen 2026-05-13)
 Großer Umbau der App — schrittweise:
@@ -162,7 +184,10 @@ Großer Umbau der App — schrittweise:
 - ✅ **FamilyDashboard umstrukturiert:** 3 Tabs — Hausaufgaben (pro Typ mit Foto-Upload), Report (Lektionsliste mit Zusammenfassungen), Kommunikation (Placeholder)
 - ✅ **Hausaufgaben-Tab (Familie):** Audio-Aufnahme für lesen/sonstiges implementiert; latestHomework liefert jetzt auch Audio
 - ✅ **Eltern sehen Zusammenfassung** im FamilyDashboard — Report-Tab zeigt Lektionen mit Zusammenfassungen
+- ✅ **Teacher-Nav umgebaut** — nur Icons, Aufnahmen-Tab raus, Kommunikation-Tab (Placeholder) dazu, neue Reihenfolge
+- ✅ **HomeworkTab Familien einklappbar** — Header mit X/Y-Badge, Details erst nach Klick sichtbar
 - ⏳ **Recordings-System abschalten** wenn homework_audio voll in Betrieb
+- ✅ **Kommunikation-Tab** implementiert (Lehrerin schreibt Feedback pro Schüler + Stunde; Familie liest)
 - Weitere Umbau-Schritte folgen
 
 ## Offene Aufgaben

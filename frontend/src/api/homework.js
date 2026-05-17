@@ -3,6 +3,9 @@ import api from './client'
 export const getLatestHomework = () =>
   api.get('/lessons/latest-homework').then(r => r.data)
 
+export const getLessonFamilyHomework = (lessonId) =>
+  api.get(`/lessons/${lessonId}/family-homework`).then(r => r.data)
+
 export const uploadHomeworkImage = (lessonId, file, hwType) => {
   const form = new FormData()
   form.append('image', file)

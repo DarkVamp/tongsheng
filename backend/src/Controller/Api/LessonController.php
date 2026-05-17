@@ -30,10 +30,11 @@ class LessonController extends AbstractController
 
         if (!$user->isTeacher()) {
             return $this->json(array_map(fn(Lesson $l) => [
-                'id'      => $l->getId(),
-                'date'    => $l->getDate()->format('Y-m-d'),
-                'title'   => $l->getTitle(),
-                'summary' => $l->getSummary(),
+                'id'           => $l->getId(),
+                'date'         => $l->getDate()->format('Y-m-d'),
+                'title'        => $l->getTitle(),
+                'summary'      => $l->getSummary(),
+                'homeworkTypes' => $l->getHomeworkTypes() ?? [],
             ], $lessons));
         }
 

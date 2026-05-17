@@ -24,8 +24,8 @@ class LessonControllerTest extends ApiTestCase
         self::assertArrayHasKey('date', $data[0]);
         self::assertArrayHasKey('title', $data[0]);
         self::assertArrayHasKey('summary', $data[0]);
+        self::assertArrayHasKey('homeworkTypes', $data[0]);
         self::assertArrayNotHasKey('presentCount', $data[0]);
-        self::assertArrayNotHasKey('homeworkTypes', $data[0]);
     }
 
     public function testListEmpty(): void

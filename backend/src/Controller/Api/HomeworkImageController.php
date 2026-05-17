@@ -86,6 +86,41 @@ class HomeworkImageController extends AbstractController
         ]);
     }
 
+    // ── Eigene Einreichungen einer Stunde abrufen (family_member) ───────────
+
+    #[Route('/api/lessons/{lessonId}/family-homework', methods: ['GET'])]
+    public function familyHomework(
+        int $lessonId,
+        LessonRepository $lessonRepo,
+        HomeworkImageRepository $imageRepo,
+        HomeworkAudioRepository $audioRepo
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if ($user->isTeacher()) {
+            return $this->json(['error' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $family = $user->getFamily();
+        if (!$family) {
+            return $this->json(['error' => 'No family assigned.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $lesson = $lessonRepo->find($lessonId);
+        if (!$lesson) {
+            return $this->json(['error' => 'Not found.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $images = $imageRepo->findByLessonAndFamily($lesson, $family);
+        $audio  = $audioRepo->findByLessonAndFamily($lesson, $family);
+
+        return $this->json([
+            'images' => array_map($this->serializeImage(...), $images),
+            'audio'  => array_map($this->serializeAudio(...), $audio),
+        ]);
+    }
+
     // ── Bild hochladen (family_member, für eigene Familie) ───────────────────
 
     #[Route('/api/lessons/{lessonId}/homework', methods: ['POST'])]

@@ -349,4 +349,74 @@ class HomeworkImageControllerTest extends ApiTestCase
         self::assertFalse($byName['Beta']['submitted']);
         self::assertSame([], $byName['Beta']['images']);
     }
+
+    // ── GET /api/lessons/{id}/family-homework ────────────────────────────────
+
+    public function testFamilyHomeworkForbiddenForTeacher(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_famhw_teacher');
+        $lesson = $this->createLesson('2025-06-01');
+
+        $this->req('GET', '/api/lessons/' . $lesson->getId() . '/family-homework', [], 'tok_famhw_teacher');
+        self::assertSame(403, $this->httpStatus());
+    }
+
+    public function testFamilyHomeworkNotFound(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_famhw_notfound_t');
+        $family = $this->createFamily();
+        $this->createMember($family, 'm@t.com', 'tok_famhw_notfound');
+
+        $this->req('GET', '/api/lessons/99999/family-homework', [], 'tok_famhw_notfound');
+        self::assertSame(404, $this->httpStatus());
+    }
+
+    public function testFamilyHomeworkEmptyLesson(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_famhw_empty_t');
+        $family = $this->createFamily();
+        $this->createMember($family, 'm@t.com', 'tok_famhw_empty');
+        $lesson = $this->createLesson('2025-06-01', null, true, ['schreiben']);
+
+        $this->req('GET', '/api/lessons/' . $lesson->getId() . '/family-homework', [], 'tok_famhw_empty');
+        self::assertSame(200, $this->httpStatus());
+
+        $data = $this->responseData();
+        self::assertSame([], $data['images']);
+        self::assertSame([], $data['audio']);
+    }
+
+    public function testFamilyHomeworkWithImageAndAudio(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_famhw_data_t');
+        $family = $this->createFamily();
+        $this->createMember($family, 'm@t.com', 'tok_famhw_data');
+        $lesson = $this->createLesson('2025-06-01', null, true, ['schreiben', 'lesen']);
+        $this->persistHomeworkImage($lesson, $family, 'famhw_img.png', 'schreiben');
+        $this->persistHomeworkAudioForImageTest($lesson, $family, 'lesen');
+
+        $this->req('GET', '/api/lessons/' . $lesson->getId() . '/family-homework', [], 'tok_famhw_data');
+        self::assertSame(200, $this->httpStatus());
+
+        $data = $this->responseData();
+        self::assertCount(1, $data['images']);
+        self::assertSame('schreiben', $data['images'][0]['homeworkType']);
+        self::assertCount(1, $data['audio']);
+        self::assertSame('lesen', $data['audio'][0]['homeworkType']);
+    }
+
+    public function testFamilyHomeworkOnlyOwnFamily(): void
+    {
+        $this->createTeacher('t@t.com', 'tok_famhw_own_t');
+        $familyA = $this->createFamily('Alpha');
+        $familyB = $this->createFamily('Beta');
+        $this->createMember($familyA, 'a@t.com', 'tok_famhw_own');
+        $this->createMember($familyB, 'b@t.com', 'tok_famhw_other');
+        $lesson = $this->createLesson('2025-06-01', null, true, ['schreiben']);
+        $this->persistHomeworkImage($lesson, $familyB, 'famhw_other.png', 'schreiben');
+
+        $this->req('GET', '/api/lessons/' . $lesson->getId() . '/family-homework', [], 'tok_famhw_own');
+        self::assertSame(200, $this->httpStatus());
+        self::assertSame([], $this->responseData()['images']);
+    }
 }
